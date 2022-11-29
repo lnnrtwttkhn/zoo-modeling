@@ -2,3 +2,5 @@
 **/.git* annex.largefiles=nothing
 CHANGELOG.md annex.largefiles=nothing
 README.md annex.largefiles=nothing
+.gitignore annex.largefiles=nothing
+zoo-modeling.Rproj annex.largefiles=nothing
