@@ -1,4 +1,4 @@
-# Project <insert name>
+# Zoo Modeling
 
 ## Dataset structure
 
