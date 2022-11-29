@@ -6,3 +6,4 @@ README.md annex.largefiles=nothing
 zoo-modeling.Rproj annex.largefiles=nothing
 .Rprofile annex.largefiles=nothing
 renv annex.largefiles=nothing
+renv.lock annex.largefiles=nothing
