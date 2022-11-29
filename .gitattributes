@@ -4,3 +4,5 @@ CHANGELOG.md annex.largefiles=nothing
 README.md annex.largefiles=nothing
 .gitignore annex.largefiles=nothing
 zoo-modeling.Rproj annex.largefiles=nothing
+.Rprofile annex.largefiles=nothing
+renv annex.largefiles=nothing
