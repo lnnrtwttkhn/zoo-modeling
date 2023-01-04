@@ -6,11 +6,11 @@
 2. Set up [SSH on GIN](https://gin.g-node.org/user/settings/ssh) (recommended)
 3. Install the DataLad dataset and retrieve the data (this takes about 1 min.):
 
-    ```bash
-    datalad install --get-data --source git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling.git
-    ```
+```bash
+datalad install --get-data --source git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling.git
+```
 
-4. Done! 🎉
+Done! 🎉
 
 ## Run
 
