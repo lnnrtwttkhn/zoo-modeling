@@ -3,6 +3,7 @@ packages_cran = c("here", "data.table", "magrittr", "assertr",
                   "dplyr", "tidyr", "gtools", "lme4", "ggplot2")
 pacman::p_load(char = packages_cran)
 paths_figures = here::here("outputs/figures")
+dir.create(paths_figures, recursive = TRUE)
 
 calc_bits = function(probability) {
   bits = -log(probability, base = 2)
