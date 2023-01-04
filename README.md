@@ -1,8 +1,20 @@
 # Zoo Modeling
 
+## Clone
+
+1. Get access to [this GIN repo](git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling.git) ([ask Lennart](mailto:wittkuhn@mpib-berlin.mpg.de))
+2. Set up [SSH on GIN](https://gin.g-node.org/user/settings/ssh) (recommended)
+3. Install the DataLad dataset and retrieve the data (this takes about 1 min.):
+
+```bash
+datalad install --get-data --source git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling.git
+```
+
+4. Done! 🎉
+
 ## Run
 
-Run `make all` to run `sr-modeling.R` which recreated [Figure 3d of the preprint](https://www.biorxiv.org/content/biorxiv/early/2022/02/02/2022.02.02.478787/F3.large.jpg?width=800&height=600&carousel=1).
+Inside the project directory (you might need to `cd zoo-modeling`), run `make all` to run `sr-modeling.R` which recreates [Figure 3d of the preprint](https://www.biorxiv.org/content/biorxiv/early/2022/02/02/2022.02.02.478787/F3.large.jpg?width=800&height=600&carousel=1).
 
 ## Requirements
 
