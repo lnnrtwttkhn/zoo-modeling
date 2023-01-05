@@ -5,3 +5,6 @@
 .DS_Store
 outputs
 Rplots.pdf
+
+# Exclude temporary hidden files
+._*
