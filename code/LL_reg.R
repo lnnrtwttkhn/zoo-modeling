@@ -8,9 +8,6 @@ LL_reg = function(x,
   source(file.path(source_path, 'Reg_model.R',
                    fsep = .Platform$file.sep))
   
-  x = list(0.1, 0.3)
-  model = 'sr'
-  
   # Run regression
   res = Reg_model(x = x,
                   data = data,

@@ -2,8 +2,6 @@ if (!requireNamespace("pacman")) install.packages("pacman")
 packages_cran = c("here", "data.table", "magrittr", "assertr",
                   "dplyr", "tidyr", "gtools", "lme4", "ggplot2")
 pacman::p_load(char = packages_cran)
-paths_figures = here::here("outputs/figures")
-dir.create(paths_figures, recursive = TRUE)
 
 Reg_model = function(x,
                      data,
@@ -39,7 +37,7 @@ Reg_model = function(x,
   # Get shannon-surprise of each trial given model
   if(model == 'sr'){
     data_res = data %>%
-      setDT(.) %>%
+      data.table::setDT(.) %>%
       # Skip first trial of each run (because there is no transition happening)
       .[trial_run > 1, ] %>%
       # Add node transition as column
@@ -57,7 +55,7 @@ Reg_model = function(x,
   
   # Transform data
   data_res_main = data_res %>%
-    setDT() %>%
+    data.table::setDT() %>%
     # Exclude training block
     .[condition == "main",] %>%
     # Add log-transformed RT
@@ -69,7 +67,7 @@ Reg_model = function(x,
     # Column for graph used
     .[, graphblock := ifelse(block %in% seq(1, 5), "first graph", "second graph")] %>%
     # Check if any data is missing
-    verify(block %in% seq(1, num_runs * 2)) %>%
+    assertr::verify(block %in% seq(1, num_runs * 2)) %>%
     # Exclude error trials
     .[accuracy == 1,]
 
