@@ -1,7 +1,11 @@
-if (!requireNamespace("pacman")) install.packages("pacman")
-packages_cran = c("here", "data.table", "magrittr", "assertr",
-                  "dplyr", "tidyr", "gtools", "lme4", "ggplot2")
-pacman::p_load(char = packages_cran)
+if (!requireNamespace("renv")) install.packages("renv")
+renv::activate()
+#renv::rebuild()
+
+# if (!requireNamespace("pacman")) install.packages("pacman")
+# packages_cran = c("here", "data.table", "magrittr", "assertr",
+#                   "dplyr", "tidyr", "gtools", "lme4", "ggplot2")
+# pacman::p_load(char = packages_cran)
 library(optparse)
 
 Fit_model_wrapper = function(participant_id,
@@ -208,5 +212,5 @@ Fit_model_wrapper(participant_id = opt$participant_id,
                   n_iterations = opt$n_iterations)
 
 # Example command:
-# Rscript Fit_model_wrapper.R --participant_id 'sub-01' --model 'sr' --algorithm 'NLOPT_GN_DIRECT_L' --xtol_rel 0.00001 --maxeval 10 --random_starting_values 'TRUE' --x0 0.5,0.5 --lb 0.01,0.01 --ub 1,1 --n_iterations 3
+# Rscript Fit_model_wrapper.R --participant_id 'sub-02' --model 'sr' --algorithm 'NLOPT_GN_DIRECT_L' --xtol_rel 0.00001 --maxeval 1000 --random_starting_values 'TRUE' --x0 0.5,0.5 --lb 0.01,0.01 --ub 1,1 --n_iterations 3
 
