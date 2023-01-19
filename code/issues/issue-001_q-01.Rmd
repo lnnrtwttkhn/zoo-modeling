@@ -71,6 +71,7 @@ data_model = data %>%
 ```{r}
 model_1 = lme4::lmer(formula = log_response_time ~ trial_ses + finger_pressed + (1 | id),
                      data = data_model)
+summary(model_1)
 car::Anova(model_1)
 ```
 
@@ -79,6 +80,7 @@ car::Anova(model_1)
 ```{r}
 model_2 = lme4::lmer(formula = log_response_time ~ trial_block + block + finger_pressed + (1 | id),
                      data = data_model)
+summary(model_2)
 car::Anova(model_2)
 ```
 
