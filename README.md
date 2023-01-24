@@ -12,6 +12,18 @@ datalad install --get-data --source git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling
 
 Done! 🎉
 
+## Add GIN remote
+
+Following a `datalad clone` from GitLab, you need to configure the GIN remote:
+
+```bash
+datalad siblings add -s gin --url git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling.git
+```
+
+```bash
+datalad siblings configure -s origin --publish-depends gin
+```
+
 ## Run
 
 Inside the project directory (you might need to `cd zoo-modeling`), run `make all` to run `sr-modeling.R` which recreates [Figure 3d of the preprint](https://www.biorxiv.org/content/biorxiv/early/2022/02/02/2022.02.02.478787/F3.large.jpg?width=800&height=600&carousel=1).
