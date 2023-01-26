@@ -12,6 +12,31 @@ datalad install --get-data --source git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling
 
 Done! 🎉
 
+## Add GIN remote
+
+Following a `datalad clone` from GitLab, you need to configure the GIN remote in two steps:
+
+First, add the GIN remote as an additional second "sibling":
+
+```bash
+datalad siblings add -s gin --url git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling.git
+```
+
+Second, configure a publication dependency of `origin` (i.e., GitLab) on the the `gin` remote:
+
+```bash
+datalad siblings configure -s origin --publish-depends gin
+```
+
+To publish to both repositories (GitLab and GIN) use:
+
+```bash
+datalad push --to origin
+```
+
+Due to the `-publish-depends gin` configuration, DataLad will push to both remote repositories simultaneously.
+
+
 ## Run
 
 Inside the project directory (you might need to `cd zoo-modeling`), run `make all` to run `sr-modeling.R` which recreates [Figure 3d of the preprint](https://www.biorxiv.org/content/biorxiv/early/2022/02/02/2022.02.02.478787/F3.large.jpg?width=800&height=600&carousel=1).
