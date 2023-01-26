@@ -147,3 +147,31 @@ p = ggplot2::ggplot(data = data_model,
 p
 ```
 
+---
+
+# Code hand-specific finger
+
+```{r}
+data_model = data_model %>%
+  .[, hand_finger_pressed := paste(hand_pressed, finger_pressed, sep = '_')]
+```
+
+## Model 1
+
+```{r}
+model_1 = lme4::lmer(formula = log_response_time ~ trial_ses + hand_finger_pressed + (1 | id),
+                     data = data_model)
+summary(model_1)
+car::Anova(model_1)
+```
+
+
+## Model 2
+
+```{r}
+model_2 = lme4::lmer(formula = log_response_time ~ trial_block + block + hand_finger_pressed + (1 | id),
+                     data = data_model)
+summary(model_2)
+car::Anova(model_2)
+```
+
