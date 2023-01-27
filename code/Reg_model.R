@@ -38,6 +38,9 @@ Reg_model = function(x,
   if(model == 'sr'){
     data_res = data %>%
       data.table::setDT(.) %>%
+      # Get trial within session
+      .[, trial_ses := seq(.N),
+        by = .(id, session)] %>%
       # Skip first trial of each run (because there is no transition happening)
       .[trial_run > 1, ] %>%
       # Add node transition as column
@@ -64,8 +67,13 @@ Reg_model = function(x,
     .[, halfrun := ifelse(trial_run <= num_trials_run / 2, "first", "second")] %>%
     # Specify block (combination of run and halfrun)
     .[, block := as.numeric(factor(paste(run, halfrun, sep = '_')))] %>%
+    # Get trial within block
+    .[, trial_block := seq(.N),
+      by = .(id, block)] %>%
     # Column for graph used
     .[, graphblock := ifelse(block %in% seq(1, 5), "first graph", "second graph")] %>%
+    # Get which finger on which hand was used for response
+    .[, hand_finger_pressed := paste(hand_pressed, finger_pressed, sep = '_')] %>%
     # Check if any data is missing
     assertr::verify(block %in% seq(1, num_runs * 2)) %>%
     # Exclude error trials
@@ -80,11 +88,21 @@ Reg_model = function(x,
   #                    .names = "{.col}_{.fn}")) %>%
   #   setorder(., id, block, transition, dist_uni_mean)
   
-  # Define statistical model (currently only placeholder, e.g. glm)
-  stat_model = glm(response_time ~ shannon_surprise,
+  # Define statistical model
+  # Detail: Predicting RT (not transformed!) by SR-related surprise.
+  # Control for:
+  #   - getting faster across experiment (over trials in a session, and over blocks in general)
+  #   - faster/slower response depending on hand and finger.
+  # Untransformed RTs are Gamma-distributed, using GLM with inverse link function to avoid transformation
+  stat_model = glm(formula = response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed,
                    family = Gamma(link = 'inverse'),
                    data = data_res_main)
 
+  # Debug: Visualize best fit
+  # ggplot2::ggplot(data = data_res_main,
+  #                 aes(x = shannon_surprise,
+  #                     y = response_time)) +
+  #   geom_point()
   
   return(list(stat_model = stat_model,
               data = data_res_main,

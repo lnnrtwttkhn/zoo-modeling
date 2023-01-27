@@ -35,7 +35,7 @@ N_CPUS=1
 # maximum number of threads per process:
 N_THREADS=1
 # memory demand in *MB*
-MEM_MB=10000
+MEM_MB=500
 # ==============================================================================
 # Set fitting process parameters
 # ==============================================================================
