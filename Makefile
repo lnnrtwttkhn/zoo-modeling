@@ -10,3 +10,39 @@ modeling: inputs/zoo_sourcedata_behavioral_data.csv
 
 inputs/zoo_sourcedata_behavioral_data.csv:
 	datalad get $<
+
+# version of the docker container:
+DOCKER_VERSION = 0.1
+# platform of the docker container:
+DOCKER_PLATFORM = linux/amd64
+
+# login to the MPIB container registry:
+.PHONY: docker-login
+	docker login registry.git.mpib-berlin.mpg.de
+
+# build docker container:
+.PHONY: docker-build
+docker-build:
+	docker build --platform $(DOCKER_PLATFORM) -t registry.git.mpib-berlin.mpg.de/wittkuhn/zoo-modeling/modeling:$(DOCKER_VERSION) .docker/modeling
+
+# push the docker container to the registry	
+.PHONY: docker-push
+docker-push:
+	docker push registry.git.mpib-berlin.mpg.de/wittkuhn/zoo-modeling/modeling:$(DOCKER_VERSION)
+
+# pull singularity version of the container:
+.PHONY: singularity pull
+singularity-pull:
+	singularity pull --docker-login --force "modeling.sif" docker://registry.git.mpib-berlin.mpg.de/wittkuhn/zoo-modeling/modeling:$(DOCKER_VERSION)
+
+.PHONY: apptainer-pull
+apptainer-pull:
+	apptainer pull --docker-login --force "modeling.sif" docker://registry.git.mpib-berlin.mpg.de/wittkuhn/zoo-modeling/modeling:$(DOCKER_VERSION)
+
+modeling.sif:
+	apptainer pull --docker-login --force "modeling.sif" docker://registry.git.mpib-berlin.mpg.de/wittkuhn/zoo-modeling/modeling:$(DOCKER_VERSION)
+
+.PHONY: apptainer-shell
+apptainer-shell:
+	apptainer shell --contain --bind $(pwd):/mnt:rw modeling.sif
+

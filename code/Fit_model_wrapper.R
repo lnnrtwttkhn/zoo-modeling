@@ -1,13 +1,3 @@
-if (!requireNamespace("renv")) install.packages("renv")
-renv::activate()
-#renv::rebuild()
-
-# if (!requireNamespace("pacman")) install.packages("pacman")
-# packages_cran = c("here", "data.table", "magrittr", "assertr",
-#                   "dplyr", "tidyr", "gtools", "lme4", "ggplot2")
-# pacman::p_load(char = packages_cran)
-library(optparse)
-
 Fit_model_wrapper = function(participant_id,
                              model,
                              algorithm,
@@ -137,66 +127,66 @@ split_list = function(object,
 
 # Create options to pass to script
 option_list = list(
-  make_option(c('-p', '--participant_id'),
+ optparse::make_option(c('-p', '--participant_id'),
               type='character',
               default = NULL,
               help = 'ID of participant',
               metavar = 'PARTICIPANT_ID'),
-  make_option(c('-m', '--model'),
+  optparse::make_option(c('-m', '--model'),
               type='character',
               default = NULL,
               help = 'model to use for fitting, e.g. "sr',
               metavar = 'MODEL'),
-  make_option(c('-a', '--algorithm'),
+  optparse::make_option(c('-a', '--algorithm'),
               type='character',
               default = NULL,
               help = 'nloptr algorithm. Example: NLOPT_GN_DIRECT_L',
               metavar = 'ALGORITHM'),
-  make_option(c('-t', '--xtol_rel'),
+  optparse::make_option(c('-t', '--xtol_rel'),
               type='numeric',
               default = NULL,
               help = 'Int giving tolerance for fitting. Example: 0.00001',
               metavar = 'XTOL_REL'),
-  make_option(c('-e', '--maxeval'),
+  optparse::make_option(c('-e', '--maxeval'),
               type='numeric',
               default = NULL,
               help = 'Maximum number of evaluations before fitting terminates. Example: 1000',
               metavar = 'MAXEVAL'),
-  make_option(c('-r', '--random_starting_values'),
+  optparse::make_option(c('-r', '--random_starting_values'),
               type='logical',
               default = NULL,
               help = 'If TRUE, random starting values will be used. If FALSE, x0 will be used for starting values',
               metavar = 'RANDOM_STARTING_VALUES'),
-  make_option(c('-x', '--x0'),
+  optparse::make_option(c('-x', '--x0'),
               action = 'callback',
               callback = split_list,
               type='character',
               default = NULL,
               help = 'List of starting values for parameters. Example: 0.1 0.3',
               metavar = 'X0'),
-  make_option(c('-l', '--lb'),
+  optparse::make_option(c('-l', '--lb'),
               action = 'callback',
               callback = split_list,
               type='character',
               default = NULL,
               help = 'List of lower bound values for parameters. Example: 0.1 0.3',
               metavar = 'LB'),
-  make_option(c('-u', '--ub'),
+  optparse::make_option(c('-u', '--ub'),
               action = 'callback',
               callback = split_list,
               type='character',
               default = NULL,
               help = 'List of upper bound values for parameters. Example: 0.1 0.3',
               metavar = 'UB'),
-  make_option(c('-i', '--n_iterations'),
+  optparse::make_option(c('-i', '--n_iterations'),
               type='numeric',
               default = NULL,
               help = 'Int giving number of iterations fitting is repeated. Random starting values will be different each iteration',
               metavar = 'N_ITERATIONS'))
 
 # provide options in list to be callable by script
-opt_parser = OptionParser(option_list = option_list)
-opt = parse_args(opt_parser)
+opt_parser = optparse::OptionParser(option_list = option_list)
+opt = optparse::parse_args(opt_parser)
 
 
 # Call wrapper with command line inputs
