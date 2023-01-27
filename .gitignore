@@ -5,6 +5,9 @@
 .DS_Store
 outputs
 Rplots.pdf
+*.sif
+job.slurm
+logs
 *html
 
 # Exclude temporary hidden files
