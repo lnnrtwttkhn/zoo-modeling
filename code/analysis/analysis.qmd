@@ -1,0 +1,82 @@
+---
+title: "Modeling Analysis"
+format: html
+editor: visual
+---
+
+### Setup
+
+```{r}
+#| message: false
+library(magrittr)
+library(data.table)
+library(assertr)
+library(ggplot2)
+```
+
+
+```{r}
+data_dir = file.path(here::here(), 'outputs', 'modeling', 'sub-*.csv',
+                     fsep = .Platform$file.sep)
+data_files = Sys.glob(data_dir)
+data = data.table::data.table()
+for(file in data_files){
+  data = rbind(data,
+               data.table::fread(file))
+}
+```
+
+---
+
+### Checks
+
+Random starting values?
+
+```{r}
+check_sv = data %>%
+  # Cut data to relevant variables
+  .[mod== 'model'] %>%
+  .[variable %in% c('x0_alpha', 'x0_gamma')] %>%
+  # Count number of different starting values within each participant and parameter
+  .[, .(n_diff_sv = length(unique(value)),
+        n_sv = length(value)),
+    by = .(id, variable)] %>%
+  # Test if same starting values were used for all iterations
+  assertr::verify(., n_diff_sv == 1)
+```
+
+Consistent estimation across iterations? (using same starting values)
+
+```{r}
+check_cons = data %>%
+  # Cut data to relevant variables
+  .[mod== 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Get dispersion of parameter estimates
+  .[, .(sd_estimate = sd(value)),
+    by = .(id, variable)]
+
+p = ggplot2::ggplot(data = check_cons,
+                    aes(x = sd_estimate)) +
+  geom_freqpoly(bins = 30) +
+  facet_wrap(~variable)
+p
+```
+
+Distribution of parameters
+
+```{r}
+check_dist = data %>%
+  # Cut data to relevant variables
+  .[mod== 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Only use first iteration (since no dispersion between iterations)
+  .[iter == 1]
+
+p = ggplot2::ggplot(data = check_dist,
+                    aes(x = value)) +
+  geom_histogram(bins = 10) +
+  facet_wrap(~variable)
+p
+```
+
