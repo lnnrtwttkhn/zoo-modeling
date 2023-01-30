@@ -1,0 +1,5 @@
+[submodule "outputs"]
+	path = outputs
+	url = git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling-outputs.git
+	datalad-id = 67b638cd-7409-4f6a-be11-4bc983a73adb
+	datalad-url = git@gin.g-node.org:/lnnrtwttkhn/zoo-modeling-outputs.git
