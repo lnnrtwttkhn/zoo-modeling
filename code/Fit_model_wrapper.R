@@ -14,7 +14,7 @@ Fit_model_wrapper = function(participant_id,
   # model = 'sr'
   # algorithm = 'NLOPT_GN_DIRECT_L'
   # xtol_rel = 1.0e-5
-  # maxeval = 10
+  # maxeval = 1000
   # random_starting_values = TRUE
   # x0 = c(0.1,
   #        0.3)

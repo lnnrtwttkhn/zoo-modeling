@@ -42,7 +42,7 @@ Fit_model = function(data,
   # Run reg model with best fitting parameters (minimized LL)
   res = Reg_model(x = min$solution,
                   data = data,
-                  model = 'sr')
+                  model = model)
   
   # Construct output
   # Model data
