@@ -10,6 +10,8 @@ PATH_BASE="${PATH_SCRIPT%/*}"
 PATH_DATA="${PATH_BASE}/inputs/zoo_sourcedata_behavioral_data.csv"
 # output directory
 PATH_OUT="${PATH_BASE}/outputs/modeling"
+# unlock output data to allow overwriting of files:
+datalad unlock ${PATH_OUT}
 # directory to save logs of HPC
 PATH_LOG="${PATH_BASE}/logs/hpc_Fit_model_wrapper/$(date '+%Y%m%d_%H%M')"
 # Path to script to run
