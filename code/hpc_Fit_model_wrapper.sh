@@ -55,7 +55,7 @@ UB="1,1"
 # Run model fitting
 # ==============================================================================
 # loop over all subjects:
-for i in {1..40}; do
+for i in {1..44}; do
   # turn the subject id into a zero-padded number and add "sub"
 	SUB="sub-$(printf "%02d\n" ${i})"
 	# Get job name
