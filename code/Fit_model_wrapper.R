@@ -114,7 +114,7 @@ Fit_model_wrapper = function(participant_id,
   
   # Fit
   # Construct file name and combine with target directory
-  file_name = paste(participant_id, '_model-', model, '_fit-result.csv',
+  file_name = paste(participant_id, '_model-', model, '.csv',
                     sep = '')
   file = file.path(save_dir, file_name,
                    fsep = .Platform$file.sep)
