@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-### Setup
+# Setup
 
 ```{r}
 #| message: false
@@ -12,11 +12,15 @@ library(magrittr)
 library(data.table)
 library(assertr)
 library(ggplot2)
+library(here)
+
+base_path = here::here()
 ```
 
+Load modeling data
 
 ```{r}
-data_dir = file.path(here::here(), 'outputs', 'modeling', 'sub-*.csv',
+data_dir = file.path(base_path, 'outputs', 'modeling', 'sub-*.csv',
                      fsep = .Platform$file.sep)
 data_files = Sys.glob(data_dir)
 data = data.table::data.table()
@@ -26,11 +30,19 @@ for(file in data_files){
 }
 ```
 
+Load behavioral data
+
+```{r}
+data_files = file.path(base_path, 'inputs', 'zoo_sourcedata_behavioral_data.csv',
+                     fsep = .Platform$file.sep)
+data_behav = data.table::fread(data_files)
+```
+
 ---
 
-### Checks
+# Checks
 
-Random starting values?
+## Random starting values?
 
 ```{r}
 check_sv = data %>%
@@ -45,7 +57,7 @@ check_sv = data %>%
   assertr::verify(., n_diff_sv == 1)
 ```
 
-Consistent estimation across iterations? (using same starting values)
+## Consistent estimation across iterations? (using same starting values)
 
 ```{r}
 check_cons = data %>%
@@ -63,7 +75,7 @@ p = ggplot2::ggplot(data = check_cons,
 p
 ```
 
-Distribution of parameters
+## Distribution of parameters
 
 ```{r}
 check_dist = data %>%
@@ -73,10 +85,144 @@ check_dist = data %>%
   # Only use first iteration (since no dispersion between iterations)
   .[iter == 1]
 
+# Plot dispersion of parameter values across different iterations
 p = ggplot2::ggplot(data = check_dist,
                     aes(x = value)) +
   geom_histogram(bins = 10) +
   facet_wrap(~variable)
 p
 ```
+
+# Average of parameters
+
+```{r}
+# Plot dispersion of parameter values across different iterations
+p = ggplot2::ggplot(data = check_dist,
+                    aes(x = variable,
+                        y = value,
+                        fill = variable)) +
+  geom_boxplot(outlier.shape = NA) +
+    geom_point(position = position_jitter(width = 0.2,
+                                        height = 0,
+                                        seed = 666)) +
+  stat_summary(fun = 'mean',
+               geom = 'point',
+               shape = 23,
+               size = 4,
+               fill = 'white',
+               color = 'black')
+p
+```
+
+# Distribution of betas (shannon_surprise)
+
+What is the relationship between shannon surprise (influenced by gamma and alpha) and RT?
+
+```{r}
+data_beta = data %>%
+  .[mod == 'reg_model' & variable == 'beta_shannon_surprise'] %>%
+  # Only take first iteration (fitting is consistent)
+  .[iter == 1]
+
+p = ggplot2::ggplot(data = data_beta,
+                    aes(x = variable,
+                        y = value)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(position = position_jitter(width = 0.1,
+                                        height = 0,
+                                        seed = 666)) +
+  geom_hline(yintercept = 0)
+p
+```
+
+
+---
+
+# Analysis
+
+Fuse behavioral data with modeling data
+
+```{r}
+# Get accuracy and RT of main task together with parameter values
+data_fuse = data_behav %>%
+  # Restrict data to main task
+  .[condition == 'main'] %>%
+  # Get percentage correct and avg RT
+  .[, .(avg_acc = sum(accuracy)/.N,
+        avg_logrt_correct = mean(log(response_time[accuracy == 1])),
+        median_logrt_correct = median(log(response_time[accuracy == 1])),
+        sd_logrt_correct = sd(log(response_time[accuracy == 1]))),
+    by = .(id)] %>%
+  # merge with modeling data
+  data.table::merge.data.table(., data,
+                               by = 'id') %>%
+  # restrict to best fitting parameters
+  .[mod == 'model' & variable %in% c('alpha', 'gamma')] %>%
+  # Only take first iteration (no difference between iterations, see above)
+  .[iter == 1]
+```
+
+## Parameters vs. accuracy
+
+```{r}
+# plot accuracy vs. parameter fits
+p = ggplot2::ggplot(data = data_fuse,
+                aes(x = avg_acc,
+                    y = value)) +
+  geom_point() +
+  facet_wrap(~variable)
+p
+```
+
+## Parameters vs. mean RT
+
+```{r}
+p = ggplot2::ggplot(data = data_fuse,
+                aes(x = avg_logrt_correct,
+                    y = value)) +
+  geom_point() +
+  facet_wrap(~variable)
+p
+```
+
+## RT penalty for violated structure vs. parameter
+
+```{r}
+# Get penalty for violated structure
+data_violated = data_behav %>%
+  # Restrict data to main task
+  .[condition == 'main'] %>%
+  # Exclude first trial, since no transition
+  .[trial_run != 1] %>%
+  # Get percentage correct and avg RT
+  .[, ':='(violated_uni = prob_uni != 0.7,
+           violated_bi = prob_bi != 0.35)] %>%
+  .[, violated := NA] %>%
+  .[graph == 'uni', violated := violated_uni] %>%
+  .[graph == 'bi', violated := violated_bi] %>%
+  # Exclude first trial of switched graph
+  .[!(trial_run == 121 & run == 'run-03')] %>%
+  # Get avg RT for correct trials, given structure was violated or not
+  .[, .(avg_logrt = mean(log(response_time[accuracy == 1]))),
+    by = .(id, graph, violated)] %>%
+  # Wide format
+  data.table::dcast(id + graph ~ paste0('avg_logrt_violated_', violated), value.var = 'avg_logrt') %>%
+  # Get difference in avg RT between violated and not-violated structure
+  .[, avg_logrt_violated_m_not := avg_logrt_violated_TRUE - avg_logrt_violated_FALSE] %>%
+  # merge with modeling data
+  data.table::merge.data.table(data_fuse, .,
+                               by = 'id') %>%
+  # restrict to best fitting parameters
+  .[mod == 'model' & variable %in% c('alpha', 'gamma')] %>%
+  # Only take first iteration (no difference between iterations, see above)
+  .[iter == 1]
+
+p = ggplot2::ggplot(data = data_violated,
+                    aes(x = avg_logrt_violated_m_not,
+                        y = value)) +
+  geom_point() +
+  facet_grid(graph~variable)
+p
+```
+
 

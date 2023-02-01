@@ -14,7 +14,7 @@ Fit_model_wrapper = function(participant_id,
   # model = 'sr'
   # algorithm = 'NLOPT_GN_DIRECT_L'
   # xtol_rel = 1.0e-5
-  # maxeval = 1000
+  # maxeval = 10
   # random_starting_values = TRUE
   # x0 = c(0.1,
   #        0.3)
@@ -71,7 +71,8 @@ Fit_model_wrapper = function(participant_id,
     .[id == participant_id,]
   
   # Allocate output file to combine fits over multiple iterations
-  out = data.table::data.table()
+  fit = data.table::data.table()
+  fit_data = data.table::data.table()
   
   # Repeat fitting as often as specified
   for(iter in seq(n_iterations)){
@@ -79,7 +80,7 @@ Fit_model_wrapper = function(participant_id,
     # Give message to user
     message(paste('iter:\t', iter, '...', sep = ''))
     
-    # Fit model
+    # Fit model (returns fit and data the fit is based on)
     temp = Fit_model(data = data,
                      model = model,
                      algorithm = algorithm,
@@ -89,11 +90,17 @@ Fit_model_wrapper = function(participant_id,
                      lb = lb,
                      ub = ub)
     
-    # Add iteration identifier to results
-    temp$iter = iter
+    # Model fit
+    temp_fit = temp$fit
+    temp_fit_data = temp$data
+    
+    # Add iteration identifier to model fit
+    temp_fit$iter = iter
+    temp_fit_data$iter = iter
     
     # Append results across iterations
-    out = rbind(out, temp)
+    fit = rbind(fit, temp_fit)
+    fit_data = rbind(fit_data, temp_fit_data)
   }
   
   
@@ -104,16 +111,31 @@ Fit_model_wrapper = function(participant_id,
   if(!dir.exists(save_dir)){
     dir.create(save_dir, recursive = TRUE)
   }
+  
+  # Fit
   # Construct file name and combine with target directory
-  file_name = paste(participant_id, '_model-', model, '.csv',
+  file_name = paste(participant_id, '_model-', model, '_fit-result.csv',
                     sep = '')
   file = file.path(save_dir, file_name,
                    fsep = .Platform$file.sep)
-  # Save output
-  data.table::fwrite(x = out,
+  # Save fit
+  data.table::fwrite(x = fit,
                      file = file,
                      sep = ',',
                      na = 'n/a')
+  
+  # Data that led to fit
+  # Construct file name and combine with target directory
+  file_name = paste(participant_id, '_model-', model, '_fit-data.csv',
+                    sep = '')
+  file = file.path(save_dir, file_name,
+                   fsep = .Platform$file.sep)
+  # Save fit
+  data.table::fwrite(x = fit_data,
+                     file = file,
+                     sep = ',',
+                     na = 'n/a')
+  
 }
 
 # Function to split list inputs (used as callback function during argument parsing)
