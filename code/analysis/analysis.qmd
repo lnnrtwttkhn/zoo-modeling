@@ -20,7 +20,7 @@ base_path = here::here()
 Load modeling data
 
 ```{r}
-data_dir = file.path(base_path, 'outputs', 'modeling', 'sub-*.csv',
+data_dir = file.path(base_path, 'outputs', 'modeling', 'sub-*sr.csv',
                      fsep = .Platform$file.sep)
 data_files = Sys.glob(data_dir)
 data = data.table::data.table()
@@ -116,7 +116,18 @@ p
 
 # Distribution of betas (shannon_surprise)
 
-What is the relationship between shannon surprise (influenced by gamma and alpha) and RT?
+What is the relationship between shannon surprise (influenced by gamma and
+alpha) and RT?
+
+Betas are of the opposite sign because of the inverse link.
+You can imagine it as a flipping of the x-axis (inverse link = large numbers get
+small, small numbers get large).
+That's why the direction of the relationship changes: low surprise values are
+now on the far end of the x-axis, and if low surprise means fast reaction, the
+relationship is not negative (negative beta).
+
+See [here](https://www.causact.com/linear-predictors-and-inverse-link-functions.html)
+under 23.2, point 2 "Inverse Logit".
 
 ```{r}
 data_beta = data %>%
@@ -132,6 +143,88 @@ p = ggplot2::ggplot(data = data_beta,
                                         height = 0,
                                         seed = 666)) +
   geom_hline(yintercept = 0)
+p
+```
+
+To illustrate the inversion of the betas/relationship with RT:
+
+```{r}
+# Load data of regression process
+data_dir = file.path(base_path, 'outputs', 'modeling', 'sub-*fit-data.csv',
+                     fsep = .Platform$file.sep)
+data_files = Sys.glob(data_dir)
+data_reg = data.table::data.table()
+for(file in data_files){
+  data_reg = rbind(data_reg,
+                   data.table::fread(file))
+}
+
+# Restrict to first iteration
+data_reg = data_reg %>%
+  .[iter == 1]
+
+# Apply inverse link
+stat_model_1 = glm(formula = response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed,
+                   family = Gamma(link = 'inverse'),
+                   data = data_reg[id == 'sub-03'])
+
+# No inverse link
+stat_model_2 = glm(formula = response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed,
+                   data = data_reg[id == 'sub-03'])
+
+out = data.table::as.data.table(
+  cbind(names(stat_model_1$coefficients),
+        stat_model_1$coefficients,
+        stat_model_2$coefficients)
+  )
+colnames(out) = c('Coef', 'Beta_inverse_link', 'Beta_no_link')
+out
+
+# Plot relationship between surprise and RT for each participant (no link)
+p = ggplot2::ggplot(data = data_reg,
+                aes(x = shannon_surprise,
+                    y = response_time)) +
+  geom_point(size = 0.2) +
+  geom_smooth(method='lm',
+              formula = y~x) +
+  coord_fixed(ratio = 70) +
+  facet_wrap(~id)
+p
+```
+
+## Relationship between surprise beta and gamma
+
+```{r}
+data_surprise_gamma = data %>%
+  # Isolate gamma and beta of shannon surprise
+  .[variable %in% c('gamma', 'beta_shannon_surprise')] %>%
+  # Only take first iteration (see above)
+  .[iter == 1] %>%
+  data.table::dcast(id + order + neg_ll ~ variable,
+                    value.var = 'value')
+
+p = ggplot2::ggplot(data = data_surprise_gamma,
+                aes(x = gamma,
+                    y = beta_shannon_surprise)) +
+  geom_point()
+p
+```
+
+## Relationship between LR and gamma
+
+```{r}
+data_lr_gamma = data %>%
+  # Isolate gamma and beta of shannon surprise
+  .[variable %in% c('gamma', 'alpha')] %>%
+  # Only take first iteration (see above)
+  .[iter == 1] %>%
+  data.table::dcast(id + order + neg_ll ~ variable,
+                    value.var = 'value')
+
+p = ggplot2::ggplot(data = data_lr_gamma,
+                aes(x = gamma,
+                    y = alpha)) +
+  geom_point()
 p
 ```
 
