@@ -86,15 +86,15 @@ Fit_model = function(data,
   out_reg$mod = 'reg_model'
   
   # Combine to output file
-  out = rbind(out_model, out_reg)
+  fit = rbind(out_model, out_reg)
   # Add identifiers to output file
-  out$id = unique(data$id)
-  out$order = unique(data$order)
-  out$neg_ll = min$objective
-  out$nloptr_status = min$status
-  out$nloptr_message = min$message
+  fit$id = unique(data$id)
+  fit$order = unique(data$order)
+  fit$neg_ll = min$objective
+  fit$nloptr_status = min$status
+  fit$nloptr_message = min$message
   # Sort columns
-  data.table::setcolorder(out, neworder = c('id',
+  data.table::setcolorder(fit, neworder = c('id',
                                             'order',
                                             'nloptr_status',
                                             'nloptr_message',
@@ -104,7 +104,8 @@ Fit_model = function(data,
                                             'value'))
   
   # Return modeling results
-  return(out)
+  return(list(fit = fit,
+              data = res$data))
   
   
 }

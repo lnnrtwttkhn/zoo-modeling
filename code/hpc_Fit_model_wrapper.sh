@@ -9,9 +9,8 @@ PATH_BASE="${PATH_SCRIPT%/*}"
 # define path to data file:
 PATH_DATA="${PATH_BASE}/inputs/zoo_sourcedata_behavioral_data.csv"
 # output directory
-PATH_OUT="${PATH_BASE}/outputs/modeling"
-# unlock output data to allow overwriting of files:
-datalad unlock ${PATH_OUT}
+PATH_OUT_DATALAD="${PATH_BASE}/outputs/modeling"
+PATH_OUT="${PATH_OUT_DATALAD}/modeling"
 # directory to save logs of HPC
 PATH_LOG="${PATH_BASE}/logs/hpc_Fit_model_wrapper/$(date '+%Y%m%d_%H%M')"
 # Path to script to run
@@ -21,9 +20,12 @@ PATH_SIF="${PATH_BASE}/modeling.sif"
 # ==============================================================================
 # CREATE DIRECTORIES
 # ==============================================================================
-# create output directory:
+# create output directory (if it does not exist):
 if [ ! -d ${PATH_OUT} ]; then
 	mkdir -p ${PATH_OUT}
+else
+	# If exists, allow overwriting of files (since its probably a datalad repo)
+	datalad unlock ${PATH_OUT_DATALAD}
 fi
 # create directory for log files:
 if [ ! -d ${PATH_LOG} ]; then

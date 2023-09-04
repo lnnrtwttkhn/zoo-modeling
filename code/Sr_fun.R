@@ -24,15 +24,19 @@ Sr_fun = function(node_previous,
   sr = matrix(expectation, num_nodes, num_nodes)
   # add letters to the successor matrix:
   colnames(sr) = rownames(sr) = LETTERS[1:6]
+  
   # loop through all trials (transitions):
   for (i in 2:(counter + 1)) {
+    
     # determine the previous node and the current node:
     node_x = which(node_previous[i] == node_letters)
     node_y = which(node[i] == node_letters)
+    
     # normalize the successor matrix to express it in probabilities:
     sr_norm = sr / matrix(rowSums(sr), num_nodes, num_nodes)
     probability = sr_norm[node_x, node_y]
     bits[i - 1] = Calc_bits(probability = probability)
+    
     # update the successor representation:
     occupancy = rep(0, num_nodes)
     occupancy[node_y] = 1
@@ -44,7 +48,9 @@ Sr_fun = function(node_previous,
       image(sr, main = i, zlim = c(0, 1))
       Sys.sleep(0.005)
     }
+    
   }
+  
   bits = c(NA, bits)
   return(bits)
 }
