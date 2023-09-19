@@ -38,7 +38,7 @@ data_files = file.path(base_path, 'inputs', 'zoo_sourcedata_behavioral_data.csv'
 data_behav = data.table::fread(data_files)
 ```
 
----
+------------------------------------------------------------------------
 
 # Checks
 
@@ -116,18 +116,11 @@ p
 
 # Distribution of betas (shannon_surprise)
 
-What is the relationship between shannon surprise (influenced by gamma and
-alpha) and RT?
+What is the relationship between shannon surprise (influenced by gamma and alpha) and RT?
 
-Betas are of the opposite sign because of the inverse link.
-You can imagine it as a flipping of the x-axis (inverse link = large numbers get
-small, small numbers get large).
-That's why the direction of the relationship changes: low surprise values are
-now on the far end of the x-axis, and if low surprise means fast reaction, the
-relationship is not negative (negative beta).
+Betas are of the opposite sign because of the inverse link. You can imagine it as a flipping of the x-axis (inverse link = large numbers get small, small numbers get large). That's why the direction of the relationship changes: low surprise values are now on the far end of the x-axis, and if low surprise means fast reaction, the relationship is not negative (negative beta).
 
-See [here](https://www.causact.com/linear-predictors-and-inverse-link-functions.html)
-under 23.2, point 2 "Inverse Logit".
+See [here](https://www.causact.com/linear-predictors-and-inverse-link-functions.html) under 22.2, point 2 "Inverse Logit".
 
 ```{r}
 data_beta = data %>%
@@ -228,8 +221,7 @@ p = ggplot2::ggplot(data = data_lr_gamma,
 p
 ```
 
-
----
+------------------------------------------------------------------------
 
 # Analysis
 
@@ -317,5 +309,3 @@ p = ggplot2::ggplot(data = data_violated,
   facet_grid(graph~variable)
 p
 ```
-
-
