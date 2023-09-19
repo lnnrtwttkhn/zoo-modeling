@@ -1,13 +1,20 @@
+# Ignore R files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+
+# Ignore macOS junk
 .DS_Store
-Rplots.pdf
-*.sif
+
+# Ignore hpc specific outputs
+logs/
 job.slurm
-logs
-*html
+
+# Ignore certain datatypes
+*.sif
+*.html
+*.pdf
 
 # Exclude output directory
 outputs/
