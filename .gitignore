@@ -17,7 +17,7 @@ job.slurm
 *.pdf
 
 # Exclude output directory
-outputs/
+#outputs/
 
 # Exclude temporary hidden files
 ._*
