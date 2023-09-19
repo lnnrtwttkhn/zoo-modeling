@@ -3,12 +3,14 @@
 .RData
 .Ruserdata
 .DS_Store
-#outputs
 Rplots.pdf
 *.sif
 job.slurm
 logs
 *html
+
+# Exclude output directory
+outputs/
 
 # Exclude temporary hidden files
 ._*
