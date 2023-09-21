@@ -40,9 +40,20 @@ data_behav = data.table::fread(data_files)
 
 ------------------------------------------------------------------------
 
-# Checks
+# Sanity Checks
 
-## Random starting values?
+## n bi-uni and uni-bi
+
+```{r}
+data_n_check = data %>%
+  .[, .(order = unique(order)),
+    by = c('id')] %>%
+  .[, count := seq(.N),
+    by = c('order')]
+```
+
+
+## Are starting values of minimization random?
 
 ```{r}
 check_sv = data %>%
@@ -56,6 +67,8 @@ check_sv = data %>%
   # Test if same starting values were used for all iterations
   assertr::verify(., n_diff_sv == 1)
 ```
+
+As intended: The starting values are random, but for every iteration we used the same set of starting values.
 
 ## Consistent estimation across iterations? (using same starting values)
 
@@ -75,6 +88,9 @@ p = ggplot2::ggplot(data = check_cons,
 p
 ```
 
+As to be expected there is no variation in parameter estimates across iterations (sd = 0).
+This is because the algorithm used (DIRECT_L) is independent of starting values and deterministic in its search.
+
 ## Distribution of parameters
 
 ```{r}
@@ -88,15 +104,23 @@ check_dist = data %>%
 # Plot dispersion of parameter values across different iterations
 p = ggplot2::ggplot(data = check_dist,
                     aes(x = value)) +
-  geom_histogram(bins = 10) +
-  facet_wrap(~variable)
+  geom_histogram(binwidth = 0.05,
+                 linewidth = 0.5,
+                 color = 'grey',
+                 fill = 'black') +
+  # scale_x_continuous(n.breaks = n_bins/2,
+  #                    expand = c(0,0)) +
+  facet_wrap(~variable) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1))
 p
 ```
 
-# Average of parameters
+# Average of parameters (of first iteration)
 
 ```{r}
-# Plot dispersion of parameter values across different iterations
+# Plot dispersion of parameter values for first iteration
 p = ggplot2::ggplot(data = check_dist,
                     aes(x = variable,
                         y = value,
@@ -110,9 +134,97 @@ p = ggplot2::ggplot(data = check_dist,
                shape = 23,
                size = 4,
                fill = 'white',
-               color = 'black')
+               color = 'black') +
+  labs(x = 'Parameter',
+       y = 'Estimate') +
+  theme(legend.position = 'none')
 p
 ```
+
+## Average parameters by condition (uni-bi vs. bi-uni)
+
+```{r}
+p = ggplot2::ggplot(data = check_dist,
+                    aes(x = variable,
+                        y = value,
+                        fill = variable)) +
+  geom_boxplot(outlier.shape = NA) +
+    geom_point(position = position_jitter(width = 0.2,
+                                        height = 0,
+                                        seed = 666)) +
+  stat_summary(fun = 'mean',
+               geom = 'point',
+               shape = 23,
+               size = 4,
+               fill = 'white',
+               color = 'black') +
+  facet_wrap(~order) +
+  labs(x = 'Parameter',
+       y = 'Estimate') +
+  theme(legend.position = 'none')
+p
+```
+
+------------------------------------------------------------------------
+
+# Did shannon surprise (influenced by `alpha` and `gamma`) influence choices?
+
+```{r}
+data_p_ss = data %>%
+  # Restrict to first iteration
+  .[iter == 1, ] %>%
+  # Look at p-values of regressors used in regression model
+  .[mod == 'reg_model',] %>%
+  .[substr(variable, start = 0, stop = 2) == 'p_',] %>%
+  # convert id variable to factor
+  .[, variable := factor(variable,
+                         levels = c('p_Intercept',
+                                    'p_shannon_surprise',
+                                    'p_trial_ses',
+                                    'p_block',
+                                    'p_hand_finger_pressedleft_middle',
+                                    'p_hand_finger_pressedleft_ring',
+                                    'p_hand_finger_pressedright_index',
+                                    'p_hand_finger_pressedright_middle',
+                                    'p_hand_finger_pressedright_ring'))]
+
+# Plot distribution of p-values for each regressor
+p = ggplot(data = data_p_ss,
+           aes(x = variable,
+               y = value)) +
+  geom_hline(yintercept = 0.05,
+             linetype = 'dashed',
+             linewidth = 0.3) +
+  geom_boxplot(width = 0.2,
+               outlier.shape = NA) +
+  geom_point(size = 0.3,
+             position = position_jitter(width = 0.1,
+                                        height = 0)) +
+  facet_wrap(~variable, scales = 'free') +
+  theme(axis.text.x = element_blank())
+p
+```
+
+------------------------------------------------------------------------
+
+# Which trials are we including?
+
+```{r}
+# Load model-data of participant
+data_trials = data.table::fread(file.path(base_path,
+                                          'outputs',
+                                          'modeling',
+                                          'sub-01_model-sr_fit-data.csv',
+                                          fsep = .Platform$file.sep),
+                                sep = ',') %>%
+  # Restrict to first iteration (only to check which trials are modeled)
+  .[iter == 1,]
+data_trials
+```
+
+
+
+------------------------------------------------------------------------
 
 # Distribution of betas (shannon_surprise)
 
