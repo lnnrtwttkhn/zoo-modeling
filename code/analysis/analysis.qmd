@@ -14,7 +14,13 @@ library(assertr)
 library(ggplot2)
 library(here)
 
+# Get repo root as base path component
 base_path = here::here()
+
+# Source own functions
+source_dir = file.path(base_path, 'code',
+                       fsep = .Platform$file.sep)
+source(file.path(source_dir, 'Exclude_participants.R', fsep = .Platform$file.sep))
 ```
 
 Load modeling data
@@ -28,6 +34,10 @@ for(file in data_files){
   data = rbind(data,
                data.table::fread(file))
 }
+
+# Exclude participants
+data = data %>%
+  Exclude_participants(.)
 ```
 
 Load behavioral data
@@ -35,14 +45,16 @@ Load behavioral data
 ```{r}
 data_files = file.path(base_path, 'inputs', 'zoo_sourcedata_behavioral_data.csv',
                      fsep = .Platform$file.sep)
-data_behav = data.table::fread(data_files)
+data_behav = data.table::fread(data_files) %>%
+  # Exclude participants
+  Exclude_participants(.)
 ```
 
 ------------------------------------------------------------------------
 
 # Sanity Checks
 
-## n bi-uni and uni-bi
+## Number of participants in groups (bi-uni and uni-bi)
 
 ```{r}
 data_n_check = data %>%
