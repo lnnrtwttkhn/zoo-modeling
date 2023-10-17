@@ -127,7 +127,23 @@ p = ggplot2::ggplot(data = check_dist,
 p
 ```
 
+------------------------------------------------------------------------
+
 # Average of parameters (of first iteration)
+
+## Across graph-orders
+
+```{r}
+table_params_all = data %>%
+  # Cut data to relevant variables
+  .[mod == 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Get dispersion of parameter estimates
+  .[, .(mean_estimate = mean(value),
+        sd_estimate = sd(value)),
+    by = .(variable)]
+table_params_all
+```
 
 ```{r}
 # Plot dispersion of parameter values for first iteration
@@ -151,7 +167,20 @@ p = ggplot2::ggplot(data = check_dist,
 p
 ```
 
-## Average parameters by condition (uni-bi vs. bi-uni)
+## Within graph-orders
+
+```{r}
+table_params_group = data %>%
+  # Cut data to relevant variables
+  .[mod == 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Get dispersion of parameter estimates
+  .[, .(mean_estimate = mean(value),
+        sd_estimate = sd(value)),
+    by = .(order, variable)]
+table_params_group
+```
+
 
 ```{r}
 p = ggplot2::ggplot(data = check_dist,
