@@ -61,6 +61,7 @@ Reg_model = function(x,
     data.table::setDT() %>%
     # Exclude training block
     .[condition == "main",] %>%
+    # Potential way to include also recall phase: .[condition %in% c('main', 'recall')] %>%
     # Add log-transformed RT
     .[, log_response_time := log(response_time)] %>%
     # Add column for first and second half of run

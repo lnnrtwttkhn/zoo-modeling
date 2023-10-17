@@ -52,7 +52,6 @@ data_n_check = data %>%
     by = c('order')]
 ```
 
-
 ## Are starting values of minimization random?
 
 ```{r}
@@ -88,8 +87,7 @@ p = ggplot2::ggplot(data = check_cons,
 p
 ```
 
-As to be expected there is no variation in parameter estimates across iterations (sd = 0).
-This is because the algorithm used (DIRECT_L) is independent of starting values and deterministic in its search.
+As to be expected there is no variation in parameter estimates across iterations (sd = 0). This is because the algorithm used (DIRECT_L) is independent of starting values and deterministic in its search.
 
 ## Distribution of parameters
 
@@ -221,8 +219,6 @@ data_trials = data.table::fread(file.path(base_path,
   .[iter == 1,]
 data_trials
 ```
-
-
 
 ------------------------------------------------------------------------
 

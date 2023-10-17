@@ -21,3 +21,6 @@ job.slurm
 
 # Exclude temporary hidden files
 ._*
+
+# Exclude .Rmd/.qmd files on case of render failure
+*_files
