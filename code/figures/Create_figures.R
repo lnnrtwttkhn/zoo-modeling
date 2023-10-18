@@ -65,8 +65,8 @@ Create_figures = function(){
   # Plot distribution of p-values for each regressor
   p_ss = ggplot(data = data_p_ss[variable == 'p_shannon_surprise'],
              aes(x = variable,
-                 y = value)) +
-    geom_hline(yintercept = 0.05,
+                 y = log(value, base = 20))) +
+    geom_hline(yintercept = log(0.05, base = 20),
                linetype = 'dashed',
                linewidth = 0.3) +
     # geom_boxplot(width = 0.2,
@@ -76,12 +76,9 @@ Create_figures = function(){
                position = position_jitter(width = 0.3,
                                           height = 0,
                                           seed = 666)) +
-    labs(y = 'p-value',
+    labs(y = latex2exp::TeX(r'($log_{20}(\textrm{p})$)'),
          x = latex2exp::TeX(r'(\textit{$\beta_{\textit{SS}}$})')) +
-    scale_y_continuous(breaks = seq(0,0.2, by = 0.05),
-                       labels = substr(format(seq(0,0.2, by = 0.05),digits = 4),
-                                       start = 2,
-                                       stop = 4))
+    scale_y_continuous(limits = c(-20,0))
   p_ss = Neurocodify_plot(p_ss) +
     theme(axis.title.x = element_text(size = 15,
                                       face = 'plain',
