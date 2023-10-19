@@ -172,6 +172,7 @@ p
 ```{r}
 table_params_group = data %>%
   # Cut data to relevant variables
+  .[iter == 1,] %>%
   .[mod == 'model'] %>%
   .[variable %in% c('alpha', 'gamma')] %>%
   # Get dispersion of parameter estimates
@@ -180,7 +181,6 @@ table_params_group = data %>%
     by = .(order, variable)]
 table_params_group
 ```
-
 
 ```{r}
 p = ggplot2::ggplot(data = check_dist,
@@ -203,6 +203,43 @@ p = ggplot2::ggplot(data = check_dist,
   theme(legend.position = 'none')
 p
 ```
+
+------------------------------------------------------------------------
+
+# Non-zero $\gamma$ parameters
+
+```{r}
+# Set threshold for what is considered non-zero gamma estimate
+non_zero_threshold = 0.1
+
+# Get non-zero gamma variable and use it to sort
+data_nonzero_gamma = check_dist %>%
+  .[variable == 'gamma',] %>%
+  .[, non_zero_gamma := value > non_zero_threshold] %>%
+  .[order(non_zero_gamma)]
+
+# Get table of non_zero_gamma counts (across and within group)
+table_nonzero_gamma_all = data_nonzero_gamma %>%
+  .[, .(min_gamma = min(value),
+        max_gamma = max(value),
+        n = .N),
+    by = c('non_zero_gamma')] %>%
+  .[, ':='(non_zero_threshold = non_zero_threshold,
+           order = 'across')]
+table_nonzero_gamma_groups = data_nonzero_gamma %>%
+  .[, .(min_gamma = min(value),
+        max_gamma = max(value),
+        n = .N),
+    by = c('order', 'non_zero_gamma')] %>%
+  .[, ':='(non_zero_threshold = non_zero_threshold)]
+
+# Combine tables
+table_nonzero_gamma = rbind(table_nonzero_gamma_all,
+                            table_nonzero_gamma_groups) %>%
+  data.table::setcolorder(c('order', 'non_zero_gamma', 'non_zero_threshold'))
+table_nonzero_gamma
+```
+
 
 ------------------------------------------------------------------------
 
