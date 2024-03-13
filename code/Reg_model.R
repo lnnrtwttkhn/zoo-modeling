@@ -24,6 +24,10 @@ Reg_model = function(x,
       alpha = x[[1]]
       gamma = x[[2]]
     }
+  } else if (model == 'sr_base') {
+    # Translate parameters for easier coding
+    alpha = x[[1]]
+    gamma = 0
   }
   
   # Source own functions
@@ -35,7 +39,7 @@ Reg_model = function(x,
                    fsep = .Platform$file.sep))
   
   # Get shannon-surprise of each trial given model
-  if(model == 'sr'){
+  if(model == 'sr' | model == 'sr_base'){
     data_res = data %>%
       data.table::setDT(.) %>%
       # Get trial within session

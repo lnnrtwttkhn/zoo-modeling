@@ -50,7 +50,7 @@ N_ITERATIONS=3
 # ==============================================================================
 # Set modelling parameters
 # ==============================================================================
-MODEL="sr"
+declare -a MODELS=("sr", "sr_base")
 RANDOM_STARTING_VALUES="TRUE"
 X0="0.5,0.5"
 LB="0.01,0.01"
@@ -60,36 +60,38 @@ UB="1,1"
 # ==============================================================================
 # loop over all subjects:
 for i in {1..44}; do
-  # turn the subject id into a zero-padded number and add "sub"
-	SUB="sub-$(printf "%02d\n" ${i})"
-	# Get job name
-	JOB_NAME="fit-${SUB}_model-${MODEL}_randsv-${RANDOM_STARTING_VALUES}"
-	# Create job file
-	echo '#!/bin/bash' > job.slurm
-	# name of the job
-	echo "#SBATCH --job-name ${JOB_NAME}" >> job.slurm
-	# set the expected maximum running time for the job:
-	echo "#SBATCH --time 23:59:00" >> job.slurm
-	# determine how much RAM your operation needs:
-	echo "#SBATCH --mem ${MEM_MB}MB" >> job.slurm
-	# determine number of CPUs
-	echo "#SBATCH --cpus-per-task ${N_CPUS}" >> job.slurm
-	# write to log folder
-	echo "#SBATCH --output ${PATH_LOG}/slurm-${JOB_NAME}.%j.out" >> job.slurm
-	# add singularity command:
-	echo "apptainer exec --pwd mnt --cleanenv --contain --bind ${PATH_BASE}:/mnt:rw ${PATH_SIF} \
-	Rscript code/Fit_model_wrapper.R \
-  --participant_id ${SUB} \
-  --model ${MODEL} \
-  --algorithm ${ALGORITHM} \
-  --xtol_rel ${XTOL_REL} \
-  --maxeval ${MAXEVAL} \
-  --random_starting_values ${RANDOM_STARTING_VALUES} \
-  --x0 ${X0} \
-  --lb ${LB} \
-  --ub ${UB} \
-  --n_iterations ${N_ITERATIONS}" >> job.slurm
-	# submit job to cluster queue and remove it to avoid confusion:
-	sbatch job.slurm
-	rm -f job.slurm
+  for MODEL in "${MODELS[@]}"; do
+    # turn the subject id into a zero-padded number and add "sub"
+  	SUB="sub-$(printf "%02d\n" ${i})"
+  	# Get job name
+  	JOB_NAME="fit-${SUB}_model-${MODEL}_randsv-${RANDOM_STARTING_VALUES}"
+  	# Create job file
+  	echo '#!/bin/bash' > job.slurm
+  	# name of the job
+  	echo "#SBATCH --job-name ${JOB_NAME}" >> job.slurm
+  	# set the expected maximum running time for the job:
+  	echo "#SBATCH --time 23:59:00" >> job.slurm
+  	# determine how much RAM your operation needs:
+  	echo "#SBATCH --mem ${MEM_MB}MB" >> job.slurm
+  	# determine number of CPUs
+  	echo "#SBATCH --cpus-per-task ${N_CPUS}" >> job.slurm
+  	# write to log folder
+  	echo "#SBATCH --output ${PATH_LOG}/slurm-${JOB_NAME}.%j.out" >> job.slurm
+  	# add singularity command:
+  	echo "apptainer exec --pwd mnt --cleanenv --contain --bind ${PATH_BASE}:/mnt:rw ${PATH_SIF} \
+  	Rscript code/Fit_model_wrapper.R \
+    --participant_id ${SUB} \
+    --model ${MODEL} \
+    --algorithm ${ALGORITHM} \
+    --xtol_rel ${XTOL_REL} \
+    --maxeval ${MAXEVAL} \
+    --random_starting_values ${RANDOM_STARTING_VALUES} \
+    --x0 ${X0} \
+    --lb ${LB} \
+    --ub ${UB} \
+    --n_iterations ${N_ITERATIONS}" >> job.slurm
+  	# submit job to cluster queue and remove it to avoid confusion:
+  	sbatch job.slurm
+  	rm -f job.slurm
+	done
 done

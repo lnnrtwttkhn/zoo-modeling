@@ -23,6 +23,8 @@ Fit_model = function(data,
   # Get parameter names for each model
   if(model == 'sr'){
     parameter_names = c('alpha', 'gamma')
+  } else if(model == 'sr_base'){
+    parameter_names = c('alpha')
   }
   
   # Define fitting parameters
