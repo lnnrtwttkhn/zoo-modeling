@@ -69,8 +69,7 @@ Fit_model = function(data,
                                            parameter_vals))
   colnames(out_model) = c('variable', 'value')
   out_model$mod = 'model'
-  out_model$aic = AIC(res)
-  out_model$bic = BIC(res)
+  out_model$aic = res$stat_model$aic
   # Regression data
   # Get names of regressors (remove brackets from names and add prefix)
   reg_names = names(res$stat_model$coefficients)
@@ -106,8 +105,7 @@ Fit_model = function(data,
                                             'mod',
                                             'variable',
                                             'value',
-                                            'aic',
-                                            'bic'))
+                                            'aic'))
   
   # Return modeling results
   return(list(fit = fit,
