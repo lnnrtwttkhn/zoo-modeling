@@ -74,16 +74,17 @@ Fit_model = function(data,
   reg_names = names(res$stat_model$coefficients)
   reg_names = gsub('[()]', '', reg_names)
   reg_names_beta = paste('beta_', reg_names, sep = '')
-  reg_names_aic = 'aic'
+  reg_names_model_comp = c('aic', 'bic')
   # Get beta values
   reg_beta = res$stat_model$coefficients
   # Add regressor-specific p-values 
   reg_names_p = paste('p_', reg_names, sep = '')
   reg_p = summary(res$stat_model)$coefficients[,4]
   # get aic values
-  reg_aic = res$stat_model$aic
-  reg_names = c(reg_names_beta, reg_names_p, reg_names_aic)
-  reg_vals = c(reg_beta, reg_p, reg_aic)
+  reg_aic = AIC(res$stat_model)
+  reg_bic = BIC(res$stat_model)
+  reg_names = c(reg_names_beta, reg_names_p, reg_names_model_comp)
+  reg_vals = c(reg_beta, reg_p, reg_aic, reg_bic)
   # Fuse names and values of regression model
   out_reg = data.table::data.table(cbind(reg_names,
                                          reg_vals))
