@@ -1,0 +1,6 @@
+source(here::here("code", "utilities.R"))
+source(here::here("code", "fitting.R"))
+source(here::here("code", "data.R"))
+opt <- get_opt_parser()
+check_opt(opt)
+fit_model_wrapper(opt)

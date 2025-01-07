@@ -79,7 +79,7 @@ for i in {1..44}; do
   	echo "#SBATCH --output ${PATH_LOG}/slurm-${JOB_NAME}.%j.out" >> job.slurm
   	# add singularity command:
   	echo "apptainer exec --pwd mnt --cleanenv --contain --bind ${PATH_BASE}:/mnt:rw ${PATH_SIF} \
-  	Rscript code/Fit_model_wrapper.R \
+  	Rscript code/main.R \
     --participant_id ${SUB} \
     --model ${MODEL} \
     --algorithm ${ALGORITHM} \
