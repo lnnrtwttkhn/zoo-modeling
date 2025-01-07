@@ -9,7 +9,7 @@ PATH_BASE="${PATH_SCRIPT%/*}"
 # define path to data file:
 PATH_DATA="${PATH_BASE}/inputs/zoo_sourcedata_behavioral_data.csv"
 # output directory
-PATH_OUT_DATALAD="${PATH_BASE}/outputs/modeling"
+PATH_OUT_DATALAD="${PATH_BASE}/outputs"
 PATH_OUT="${PATH_OUT_DATALAD}/modeling"
 # directory to save logs of HPC
 PATH_LOG="${PATH_BASE}/logs/hpc_Fit_model_wrapper/$(date '+%Y%m%d_%H%M')"
