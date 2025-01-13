@@ -62,10 +62,10 @@ get_opt_parser <- function() {
     "--participant_id", "sub-01",
     "--model", "sr",
     "--algorithm", "NLOPT_GN_DIRECT_L",
-    "--xtol_rel", "1.0e-5",
-    "--maxeval", "10",
+    "--xtol_rel", "0.00001",
+    "--maxeval", "10000",
     "--random_starting_values", "TRUE",
-    "--x0", "0.1,0.3",
+    "--x0", "0.5,0.5",
     "--lb", "0.01,0.01",
     "--ub", "1,1",
     "--n_iterations", "3"
