@@ -111,19 +111,17 @@ create_random_starting_values <- function(opt) {
   # check if random_starting_values is TRUE
   if (opt$random_starting_values) {
     # initialize an empty vector for x0
-    x0 <- c()
+    opt$x0 <- c()
     # for each parameter, create a random value between the respective bounds
     for (count in seq_along(opt$lb)) {
       rand_val <- round(runif(1, opt$lb[count], opt$ub[count]), 2)  # random value rounded to 2 decimal places
-      x0 <- c(x0, rand_val)  # append the random value to x0
+      opt$x0 <- c(opt$x0, rand_val)  # append the random value to x0
     }
-    return(x0)  # return the generated random starting values
-  } else {
-    return(NULL)  # return NULL if random_starting_values is FALSE
   }
+  return(opt)
 }
 
-print_model_summary <- function(opt, x0) {
+print_model_summary <- function(opt) {
   message('#####')
   message(sprintf('Starting model fitting for %s ...', opt$participant_id))
   message('#####')
@@ -134,7 +132,7 @@ print_model_summary <- function(opt, x0) {
   message(sprintf('   algorithm: %s', opt$algorithm))
   message(sprintf('   xtol_rel: %.2e', opt$xtol_rel))
   message(sprintf('   maxeval: %d', opt$maxeval))
-  message(sprintf('   x0: %s', paste(round(x0, 2), collapse = '\t')))
+  message(sprintf('   x0: %s', paste(round(opt$x0, 2), collapse = '\t')))
   message(sprintf('   lb: %s', paste(round(opt$lb, 2), collapse = '\t')))
   message(sprintf('   ub: %s', paste(round(opt$ub, 2), collapse = '\t')))
   message('- - - - - - - - - - - - -')
