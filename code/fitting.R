@@ -12,16 +12,22 @@ fit_model_wrapper <- function(opt) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
     temp <- fit_model(data = dt_sub, opt = opt)
+    temp$fit[, process := "model_fitting"]
+    # create new random starting values for the parameter recovery:
+    opt <- create_random_starting_values(opt)
+    # run parameter recovery:
+    recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
+    recov$fit[, process := "parameter_recovery"]
     # append results across iterations
-    fit <- rbindlist(list(fit, temp$fit))
-    fit_data <- rbindlist(list(fit_data, temp$data))
+    fit <- rbindlist(list(fit, temp$fit, recov$fit), fill = TRUE)
+    fit_data <- rbindlist(list(fit_data, temp$data, recov$fit_data), fill = TRUE)
     # add iteration identifier to model fit and data:
     fit[, iter := iter]
     fit_data[, iter := iter]
   }
   
   # create output path and directory:
-  path_output <- here::here("outputs", "modeling")
+  path_output <- here::here("bananan", "modeling")
   if (!dir.exists(path_output)) dir.create(path_output, recursive = TRUE)
   
   fit_file <- here::here(path_output, paste0(opt$participant_id, "_model-", opt$model, ".csv"))
@@ -31,7 +37,29 @@ fit_model_wrapper <- function(opt) {
   data.table::fwrite(fit_data, file = fit_data_file, sep = ",", na = "n/a")
 }
 
-fit_model <- function(data, opt, x0) {
+parameter_recovery <- function(fit, data, opt) {
+  # get the best fitting parameters:
+  parameters <- fit %>%
+    .[variable %in% c("alpha", "gamma"), ] %>%
+    .[, by = .(id, variable), .(
+      value = as.numeric(unique(value))
+    )] %>%
+    # check if each parameter per participant only has one value:
+    verify(.[, by = .(id, variable), .(num_values = .N)]$num_values == 1) %>%
+    .$value
+  # run the regression model based on the fitted parameters:
+  results <- get_regression_model(parameters = parameters, data = data, model = opt$model)
+  # get the beta coefficients of the regression model based on fitted parameters:
+  coeffs <- coef(results$stat_model)
+  # get shannon surprise based on fitted parameters:
+  data_res <- get_dt_surprise(data = data, alpha = parameters[[1]], gamma = parameters[[1]])
+  # simulate resonse times based on beta coefficients and shannon surprise:
+  data_sub_reconv <- data_res %>%
+    .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
+  recov <- fit_model(data = data_sub_reconv, opt = opt)
+  return(recov)
+}
+
 fit_model <- function(data, opt) {
   # define fitting parameters:
   opts = list("algorithm" = opt$algorithm, "xtol_rel" = opt$xtol_rel, "maxeval" = opt$maxeval)
