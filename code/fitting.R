@@ -27,7 +27,7 @@ fit_model_wrapper <- function(opt) {
   }
   
   # create output path and directory:
-  path_output <- here::here("bananan", "modeling")
+  path_output <- here::here("outputs", "modeling")
   if (!dir.exists(path_output)) dir.create(path_output, recursive = TRUE)
   
   fit_file <- here::here(path_output, paste0(opt$participant_id, "_model-", opt$model, ".csv"))
