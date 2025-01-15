@@ -36,8 +36,8 @@ get_dt_surprise <- function(data, alpha, gamma) {
 }
 
 
-get_successor_representation <- function(node_previous, node, alpha, gamma, fig = FALSE){
-  num_nodes = 6
+get_successor_representation <- function(node_previous, node, alpha, gamma){
+  num_nodes <- 6
   node_letters = LETTERS[1:num_nodes]
   num_transitions = length(node_previous)
   counter = num_transitions - 1
@@ -66,14 +66,6 @@ get_successor_representation <- function(node_previous, node, alpha, gamma, fig 
     occupancy = rep(0, num_nodes)
     occupancy[node_y] = 1
     sr[node_x,] = sr[node_x,] + alpha * (occupancy + gamma * sr[node_y,] - sr[node_x,])
-    
-    # If specified, plot
-    if (fig == TRUE) {
-      dev.set(dev.prev())
-      image(sr, main = i, zlim = c(0, 1))
-      Sys.sleep(0.005)
-    }
-    
   }
   
   bits = c(NA, bits)
