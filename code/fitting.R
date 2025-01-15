@@ -1,7 +1,7 @@
 fit_model_wrapper <- function(opt) {
   
-  x0 <- create_random_starting_values(opt)
-  print_model_summary(opt, x0)
+  opt <- create_random_starting_values(opt)
+  print_model_summary(opt)
   dt_sub <- get_dt_sub(opt$participant_id)
   
   # allocate output file to combine fits over multiple iterations:
@@ -11,13 +11,13 @@ fit_model_wrapper <- function(opt) {
   for (iter in seq(opt$n_iterations)) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
-    temp <- fit_model(dt_sub, opt, x0)
-    # add iteration identifier to model fit and data:
-    temp$fit[, iter := iter]
-    temp$data[, iter := iter]
+    temp <- fit_model(data = dt_sub, opt = opt)
     # append results across iterations
     fit <- rbindlist(list(fit, temp$fit))
     fit_data <- rbindlist(list(fit_data, temp$data))
+    # add iteration identifier to model fit and data:
+    fit[, iter := iter]
+    fit_data[, iter := iter]
   }
   
   # create output path and directory:
@@ -32,13 +32,15 @@ fit_model_wrapper <- function(opt) {
 }
 
 fit_model <- function(data, opt, x0) {
+fit_model <- function(data, opt) {
   # define fitting parameters:
   opts = list("algorithm" = opt$algorithm, "xtol_rel" = opt$xtol_rel, "maxeval" = opt$maxeval)
   # fit model (minimize the negative log likelihood of the statistical model):
-  min <- nloptr::nloptr(x0 = x0, eval_f = get_negative_log_likelihood,
+  min <- nloptr::nloptr(x0 = opt$x0, eval_f = get_negative_log_likelihood,
                         lb = opt$lb, ub = opt$ub, opts = opts, data = data, model = opt$model)
+  parameters <- min$solution
   # run regression model with best fitting parameters:
-  results <- get_regression_model(parameters = min$solution, data = data, model = opt$model)
+  results <- get_regression_model(parameters = parameters, data = data, model = opt$model)
 
   # Get parameter names for each model
   if(opt$model == 'sr'){
@@ -50,7 +52,7 @@ fit_model <- function(data, opt, x0) {
   # construct output for model data:
   # get names of parameters and add identifiers
   prefixes <- c('', 'x0_', 'lb_', 'ub_')
-  values <- list(min$solution, opt$x0, opt$lb, opt$ub)
+  values <- list(parameters, opt$x0, opt$lb, opt$ub)
   parameter_names <- unlist(lapply(prefixes, function(prefix) paste(prefix, parameter_names, sep = '')))
   parameter_vals <- unlist(values)
   out_model <- data.table(variable = parameter_names, value = parameter_vals)
@@ -97,12 +99,19 @@ get_regression_model <- function(parameters, data, model) {
   # parameters: list of parameters. the minimization function adjusts x to get lowest negative log likelihood
   # data: behavioral data used for model
   # model: specified model. different models required different list entries in x (e.g., for additional parameters)
+  parameters <- check_parameters(parameters = parameters, model = model)
   alpha <- parameters[[1]]
-  gamma <- alpha <- parameters[[2]]
+  gamma <- parameters[[2]]
+  # get shannon surprise based on successor representation:
   data_res <- get_dt_surprise(data, alpha, gamma)
+  # reduce data to main task condition only:
   data_res_main <- get_dt_main(dt_input = data_res)
+  # run statistical model:
   stat_model <- get_stat_model(data = data_res_main)
-  output <- list(parameters = parameters, data = data, stat_model = stat_model)
+  # add predicted response times based on the stat model:
+  data_res_main[, response_time_simulated := fitted(stat_model)]
+  # return parameters, data and results of statistical model:
+  output <- list(parameters = parameters, data = data_res_main, stat_model = stat_model)
   return(output)
 }
 
@@ -116,4 +125,28 @@ get_negative_log_likelihood <- function(parameters, data, model) {
   results <- get_regression_model(parameters, data, model)
   negative_log_likelihood <- -logLik(results$stat_model)
   return(negative_log_likelihood)
+}
+
+check_parameters <- function(parameters, model) {
+  if(model == 'sr'){
+    # Check if parameters fit specified model
+    if(length(parameters) != 2){
+      stop(paste('Number of parameters does not match specified model "',
+                 model,
+                 '"',
+                 sep = ''))
+    } else{
+      # Translate parameters for easier coding
+      parameters <- list(
+        "alpha" = parameters[[1]],
+        "gamma" = parameters[[2]]
+      )
+    }
+  } else if (model == 'sr_base') {
+    parameters <- list(
+      "alpha" = parameters[[1]],
+      "gamma" = 0
+    )
+  }
+  return(parameters)
 }
