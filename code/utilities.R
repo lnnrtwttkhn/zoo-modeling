@@ -72,7 +72,14 @@ get_opt_parser <- function() {
   ) 
   # provide options in list to be callable by script:
   parser <- optparse::OptionParser(option_list = option_list)
-  opt <- optparse::parse_args(parser, args = args_example)
+  # check if there are any command line arguments:
+  if (length(commandArgs(trailingOnly = TRUE)) > 0) {
+    # parse the CLI arguments
+    opt <- optparse::parse_args(parser)
+  } else {
+    # use the example arguments for testing
+    opt <- optparse::parse_args(parser, args = args_example)
+  }
   return(opt)
 }
 
