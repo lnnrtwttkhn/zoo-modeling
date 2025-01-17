@@ -19,8 +19,8 @@ fit_model_wrapper <- function(opt) {
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
     recov$fit[, process := "parameter_recovery"]
     # append results across iterations
-    fit <- rbindlist(list(fit, temp$fit, recov$fit), fill = TRUE)
-    fit_data <- rbindlist(list(fit_data, temp$data, recov$fit_data), fill = TRUE)
+    fit <- rbindlist(list(fit, temp$fit, recov$fit))
+    fit_data <- rbindlist(list(fit_data, temp$data, recov$fit_data))
     # add iteration identifier to model fit and data:
     fit[, iter := iter]
     fit_data[, iter := iter]
@@ -53,7 +53,7 @@ parameter_recovery <- function(fit, data, opt) {
   coeffs <- coef(results$stat_model)
   # get shannon surprise based on fitted parameters:
   data_res <- get_dt_surprise(data = data, alpha = parameters[[1]], gamma = parameters[[1]])
-  # simulate resonse times based on beta coefficients and shannon surprise:
+  # simulate response times based on beta coefficients and shannon surprise:
   data_sub_reconv <- data_res %>%
     .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
   recov <- fit_model(data = data_sub_reconv, opt = opt)
