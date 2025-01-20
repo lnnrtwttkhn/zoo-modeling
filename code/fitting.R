@@ -11,11 +11,13 @@ fit_model_wrapper <- function(opt) {
   for (iter in seq(opt$n_iterations)) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
+    opt$formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
     temp <- fit_model(data = dt_sub, opt = opt)
     temp$fit[, process := "model_fitting"]
     # create new random starting values for the parameter recovery:
     opt <- create_random_starting_values(opt)
     # run parameter recovery:
+    opt$formula <- "response_time ~ shannon_surprise"
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
     recov$fit[, process := "parameter_recovery"]
     # append results across iterations
@@ -136,7 +138,7 @@ get_regression_model <- function(parameters, data, opt) {
   # reduce data to main task condition only:
   data_res_main <- get_dt_main(dt_input = data_res)
   # run statistical model:
-  stat_model <- get_stat_model(data = data_res_main)
+  stat_model <- get_stat_model(data = data_res_main, formula = opt$formula)
   # add predicted response times based on the stat model:
   data_res_main[, response_time_simulated := fitted(stat_model)]
   # return parameters, data and results of statistical model:
@@ -144,8 +146,7 @@ get_regression_model <- function(parameters, data, opt) {
   return(output)
 }
 
-get_stat_model <- function(data) {
-  formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+get_stat_model <- function(data, formula) {
   stat_model <- glm(formula = as.formula(formula), family = Gamma(link = 'inverse'), data = data)
   return(stat_model)
 }
