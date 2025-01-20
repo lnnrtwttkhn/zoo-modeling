@@ -38,6 +38,7 @@ fit_model_wrapper <- function(opt) {
 }
 
 parameter_recovery <- function(fit, data, opt) {
+  message("running parameter recovery ...")
   # get the best fitting parameters:
   parameters <- fit %>%
     .[variable %in% c("alpha", "gamma"), ] %>%
@@ -48,7 +49,7 @@ parameter_recovery <- function(fit, data, opt) {
     verify(.[, by = .(id, variable), .(num_values = .N)]$num_values == 1) %>%
     .$value
   # run the regression model based on the fitted parameters:
-  results <- get_regression_model(parameters = parameters, data = data, model = opt$model)
+  results <- get_regression_model(parameters = parameters, data = data, opt = opt)
   # get the beta coefficients of the regression model based on fitted parameters:
   coeffs <- coef(results$stat_model)
   # get shannon surprise based on fitted parameters:
@@ -61,22 +62,22 @@ parameter_recovery <- function(fit, data, opt) {
 }
 
 fit_model <- function(data, opt) {
+  # send status message
+  message("running model fitting ...")
   # define fitting parameters:
   opts = list("algorithm" = opt$algorithm, "xtol_rel" = opt$xtol_rel, "maxeval" = opt$maxeval)
   # fit model (minimize the negative log likelihood of the statistical model):
   min <- nloptr::nloptr(x0 = opt$x0, eval_f = get_negative_log_likelihood,
-                        lb = opt$lb, ub = opt$ub, opts = opts, data = data, model = opt$model)
+                        lb = opt$lb, ub = opt$ub, opts = opts, data = data, opt = opt)
   parameters <- min$solution
   # run regression model with best fitting parameters:
-  results <- get_regression_model(parameters = parameters, data = data, model = opt$model)
-
+  results <- get_regression_model(parameters = parameters, data = data, opt = opt)
   # Get parameter names for each model
   if(opt$model == 'sr'){
     parameter_names = c('alpha', 'gamma')
   } else if(opt$model == 'sr_base'){
     parameter_names = c('alpha')
   }
-  
   # construct output for model data:
   # get names of parameters and add identifiers
   prefixes <- c('', 'x0_', 'lb_', 'ub_')
@@ -122,12 +123,12 @@ fit_model <- function(data, opt) {
   return(output)
 }
 
-get_regression_model <- function(parameters, data, model) {
+get_regression_model <- function(parameters, data, opt) {
   # inputs:
   # parameters: list of parameters. the minimization function adjusts x to get lowest negative log likelihood
   # data: behavioral data used for model
   # model: specified model. different models required different list entries in x (e.g., for additional parameters)
-  parameters <- check_parameters(parameters = parameters, model = model)
+  parameters <- check_parameters(parameters = parameters, model = opt$model)
   alpha <- parameters[[1]]
   gamma <- parameters[[2]]
   # get shannon surprise based on successor representation:
@@ -149,18 +150,18 @@ get_stat_model <- function(data) {
   return(stat_model)
 }
 
-get_negative_log_likelihood <- function(parameters, data, model) {
-  results <- get_regression_model(parameters, data, model)
+get_negative_log_likelihood <- function(parameters, data, opt) {
+  results <- get_regression_model(parameters, data, opt)
   negative_log_likelihood <- -logLik(results$stat_model)
   return(negative_log_likelihood)
 }
 
 check_parameters <- function(parameters, model) {
-  if(model == 'sr'){
+  if(opt$model == 'sr'){
     # Check if parameters fit specified model
     if(length(parameters) != 2){
       stop(paste('Number of parameters does not match specified model "',
-                 model,
+                 opt$model,
                  '"',
                  sep = ''))
     } else{
@@ -170,7 +171,7 @@ check_parameters <- function(parameters, model) {
         "gamma" = parameters[[2]]
       )
     }
-  } else if (model == 'sr_base') {
+  } else if (opt$model == 'sr_base') {
     parameters <- list(
       "alpha" = parameters[[1]],
       "gamma" = 0
