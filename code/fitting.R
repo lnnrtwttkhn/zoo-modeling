@@ -5,9 +5,8 @@ fit_model_wrapper <- function(opt) {
   dt_sub <- get_dt_sub(opt$participant_id)
   
   # allocate output file to combine fits over multiple iterations:
-  fit <- data.table()
-  fit_data <- data.table()
-  
+  fit <- list()
+  fit_data <- list()
   for (iter in seq(opt$n_iterations)) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
@@ -20,13 +19,12 @@ fit_model_wrapper <- function(opt) {
     opt$formula <- "response_time ~ shannon_surprise"
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
     recov$fit[, process := "parameter_recovery"]
-    # append results across iterations
-    fit <- rbindlist(list(fit, temp$fit, recov$fit))
-    fit_data <- rbindlist(list(fit_data, temp$data, recov$fit_data))
-    # add iteration identifier to model fit and data:
-    fit[, iter := iter]
-    fit_data[, iter := iter]
+    # append results across iterations and add iteration identifier to model fit and data:
+    fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>% .[, iter := iter]
+    fit_data[[iter]] <- rbindlist(list(temp$data, recov$fit_data)) %>% .[, iter := iter]
   }
+  fit <- rbindlist(fit)
+  fit_data <- rbindlist(fit_data)
   
   # create output path and directory:
   path_output <- here::here("outputs", "modeling")
