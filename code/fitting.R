@@ -23,8 +23,12 @@ fit_model_wrapper <- function(opt) {
     fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>% .[, iter := iter]
     fit_data[[iter]] <- rbindlist(list(temp$data, recov$fit_data)) %>% .[, iter := iter]
   }
-  fit <- rbindlist(fit)
-  fit_data <- rbindlist(fit_data)
+  fit <- rbindlist(fit) %>%
+    # add model name:
+    .[, model_name := opt$model ]
+  fit_data <- rbindlist(fit_data) %>%
+    # add model name:
+    .[, model_name := opt$model ]
   
   # create output path and directory:
   path_output <- here::here("outputs", "modeling")
