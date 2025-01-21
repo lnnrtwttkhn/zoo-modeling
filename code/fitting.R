@@ -156,11 +156,11 @@ get_negative_log_likelihood <- function(parameters, data, opt) {
 }
 
 check_parameters <- function(parameters, model) {
-  if(opt$model == 'sr'){
+  if(model == 'sr'){
     # Check if parameters fit specified model
     if(length(parameters) != 2){
       stop(paste('Number of parameters does not match specified model "',
-                 opt$model,
+                 model,
                  '"',
                  sep = ''))
     } else{
@@ -170,7 +170,7 @@ check_parameters <- function(parameters, model) {
         "gamma" = parameters[[2]]
       )
     }
-  } else if (opt$model == 'sr_base') {
+  } else if (model == 'sr_base') {
     parameters <- list(
       "alpha" = parameters[[1]],
       "gamma" = 0
