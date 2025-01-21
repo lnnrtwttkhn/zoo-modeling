@@ -102,6 +102,15 @@ check_opt <- function(opt) {
   } else {
     message("all required inputs are present.\n")
   }
+  
+  # modify input values depending on the model:
+  if(opt$model == 'sr'){
+  } else if(opt$model == 'sr_base'){
+    opt$x0 <- opt$x0[[1]]
+    opt$lb <- opt$lb[[1]]
+    opt$ub <- opt$ub[[1]]
+  }
+  
   # basic checks: check if x0, lb, and ub have the same number of parameters
   x0 <- as.numeric(opt$x0)
   lb <- as.numeric(opt$lb)
@@ -112,6 +121,7 @@ check_opt <- function(opt) {
         length(lb) == length(ub))) {
     stop("number of parameters differs between x0, lb, or ub")
   }
+  return(opt)
 }
 
 create_random_starting_values <- function(opt) {
