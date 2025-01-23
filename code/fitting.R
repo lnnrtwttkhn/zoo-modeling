@@ -14,7 +14,7 @@ fit_model_wrapper <- function(opt) {
     temp <- fit_model(data = dt_sub, opt = opt)
     temp$fit[, process := "model_fitting"]
     # create new random starting values for the parameter recovery:
-    opt <- create_random_starting_values(opt)
+    # opt <- create_random_starting_values(opt)
     # run parameter recovery:
     opt$formula <- "response_time ~ shannon_surprise"
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
