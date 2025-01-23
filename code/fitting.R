@@ -52,12 +52,16 @@ parameter_recovery <- function(fit, data, opt) {
     # check if each parameter per participant only has one value:
     verify(.[, by = .(id, variable), .(num_values = .N)]$num_values == 1) %>%
     .$value
+  # check the parameters:
+  parameters <- check_parameters(parameters = parameters, model = opt$model)
+  alpha <- parameters[[1]]
+  gamma <- parameters[[2]]
   # run the regression model based on the fitted parameters:
   results <- get_regression_model(parameters = parameters, data = data, opt = opt)
   # get the beta coefficients of the regression model based on fitted parameters:
   coeffs <- coef(results$stat_model)
   # get shannon surprise based on fitted parameters:
-  data_res <- get_dt_surprise(data = data, alpha = parameters[[1]], gamma = parameters[[1]])
+  data_res <- get_dt_surprise(data = data, alpha = alpha, gamma = gamma)
   # simulate response times based on beta coefficients and shannon surprise:
   data_sub_reconv <- data_res %>%
     .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
