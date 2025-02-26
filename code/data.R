@@ -24,7 +24,9 @@ get_dt_main <- function(dt_input) {
     .[, graphblock := ifelse(block %in% seq(1, 5), "first graph", "second graph")] %>%
     .[, hand_finger_pressed := paste(hand_pressed, finger_pressed, sep = '_')] %>%
     verify(block %in% seq(1, num_runs * 2)) %>%
-    .[accuracy == 1, ]
+    .[accuracy == 1, ] %>%
+    # remove data where shannon surprise is NA, NaN, Inf or -Inf:
+    .[is.finite(shannon_surprise), ]
   return(dt_output)
 }
 
