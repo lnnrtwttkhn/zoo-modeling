@@ -104,7 +104,7 @@ check_opt <- function(opt) {
   }
   
   # modify input values depending on the model:
-  if(opt$model == 'sr'){
+  if(opt$model == 'sr' || opt$model == 'sr_onestep'){
   } else if(opt$model == 'sr_base'){
     opt$x0 <- opt$x0[[1]]
     opt$lb <- opt$lb[[1]]

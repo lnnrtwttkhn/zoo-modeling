@@ -89,7 +89,7 @@ fit_model <- function(data, opt) {
   # run regression model with best fitting parameters:
   results <- get_regression_model(parameters = parameters, data = data, opt = opt)
   # Get parameter names for each model
-  if(opt$model == 'sr'){
+  if(opt$model == 'sr' || opt$model == 'sr_onestep'){
     parameter_names = c('alpha', 'gamma')
   } else if(opt$model == 'sr_base'){
     parameter_names = c('alpha')
@@ -172,7 +172,7 @@ get_negative_log_likelihood <- function(parameters, data, opt) {
 }
 
 check_parameters <- function(parameters, model) {
-  if(model == 'sr'){
+  if(model == "sr" || model == "sr_onestep"){
     # Check if parameters fit specified model
     if(length(parameters) != 2){
       stop(paste('Number of parameters does not match specified model "',
@@ -186,7 +186,7 @@ check_parameters <- function(parameters, model) {
         "gamma" = parameters[[2]]
       )
     }
-  } else if (model == 'sr_base') {
+  } else if (model == "sr_base") {
     parameters <- list(
       "alpha" = parameters[[1]],
       "gamma" = 0
