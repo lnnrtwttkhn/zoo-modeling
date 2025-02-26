@@ -1,24 +1,34 @@
 fit_model_wrapper <- function(opt) {
   
-  x0 <- create_random_starting_values(opt)
-  print_model_summary(opt, x0)
+  opt <- create_random_starting_values(opt)
+  print_model_summary(opt)
   dt_sub <- get_dt_sub(opt$participant_id)
   
   # allocate output file to combine fits over multiple iterations:
-  fit <- data.table()
-  fit_data <- data.table()
-  
+  fit <- list()
+  fit_data <- list()
   for (iter in seq(opt$n_iterations)) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
-    temp <- fit_model(dt_sub, opt, x0)
-    # add iteration identifier to model fit and data:
-    temp$fit[, iter := iter]
-    temp$data[, iter := iter]
-    # append results across iterations
-    fit <- rbindlist(list(fit, temp$fit))
-    fit_data <- rbindlist(list(fit_data, temp$data))
+    opt$formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+    temp <- fit_model(data = dt_sub, opt = opt)
+    temp$fit[, process := "model_fitting"]
+    # create new random starting values for the parameter recovery:
+    # opt <- create_random_starting_values(opt)
+    # run parameter recovery:
+    opt$formula <- "response_time ~ shannon_surprise"
+    recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
+    recov$fit[, process := "parameter_recovery"]
+    # append results across iterations and add iteration identifier to model fit and data:
+    fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>% .[, iter := iter]
+    fit_data[[iter]] <- rbindlist(list(temp$data, recov$fit_data)) %>% .[, iter := iter]
   }
+  fit <- rbindlist(fit) %>%
+    # add model name:
+    .[, model_name := opt$model ]
+  fit_data <- rbindlist(fit_data) %>%
+    # add model name:
+    .[, model_name := opt$model ]
   
   # create output path and directory:
   path_output <- here::here("outputs", "modeling")
@@ -31,26 +41,55 @@ fit_model_wrapper <- function(opt) {
   data.table::fwrite(fit_data, file = fit_data_file, sep = ",", na = "n/a")
 }
 
-fit_model <- function(data, opt, x0) {
+parameter_recovery <- function(fit, data, opt) {
+  message("running parameter recovery ...")
+  # get the best fitting parameters:
+  parameters <- fit %>%
+    .[variable %in% c("alpha", "gamma"), ] %>%
+    .[, by = .(id, variable), .(
+      value = as.numeric(unique(value))
+    )] %>%
+    # check if each parameter per participant only has one value:
+    verify(.[, by = .(id, variable), .(num_values = .N)]$num_values == 1) %>%
+    .$value
+  # check the parameters:
+  parameters <- check_parameters(parameters = parameters, model = opt$model)
+  alpha <- parameters[[1]]
+  gamma <- parameters[[2]]
+  # run the regression model based on the fitted parameters:
+  results <- get_regression_model(parameters = parameters, data = data, opt = opt)
+  # get the beta coefficients of the regression model based on fitted parameters:
+  coeffs <- coef(results$stat_model)
+  # get shannon surprise based on fitted parameters:
+  data_res <- get_dt_surprise(data = data, alpha = alpha, gamma = gamma)
+  # simulate response times based on beta coefficients and shannon surprise:
+  data_sub_reconv <- data_res %>%
+    .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
+  recov <- fit_model(data = data_sub_reconv, opt = opt)
+  return(recov)
+}
+
+fit_model <- function(data, opt) {
+  # send status message
+  message("running model fitting ...")
   # define fitting parameters:
   opts = list("algorithm" = opt$algorithm, "xtol_rel" = opt$xtol_rel, "maxeval" = opt$maxeval)
   # fit model (minimize the negative log likelihood of the statistical model):
-  min <- nloptr::nloptr(x0 = x0, eval_f = get_negative_log_likelihood,
-                        lb = opt$lb, ub = opt$ub, opts = opts, data = data, model = opt$model)
+  min <- nloptr::nloptr(x0 = opt$x0, eval_f = get_negative_log_likelihood,
+                        lb = opt$lb, ub = opt$ub, opts = opts, data = data, opt = opt)
+  parameters <- min$solution
   # run regression model with best fitting parameters:
-  results <- get_regression_model(parameters = min$solution, data = data, model = opt$model)
-
+  results <- get_regression_model(parameters = parameters, data = data, opt = opt)
   # Get parameter names for each model
   if(opt$model == 'sr'){
     parameter_names = c('alpha', 'gamma')
   } else if(opt$model == 'sr_base'){
     parameter_names = c('alpha')
   }
-  
   # construct output for model data:
   # get names of parameters and add identifiers
   prefixes <- c('', 'x0_', 'lb_', 'ub_')
-  values <- list(min$solution, opt$x0, opt$lb, opt$ub)
+  values <- list(parameters, opt$x0, opt$lb, opt$ub)
   parameter_names <- unlist(lapply(prefixes, function(prefix) paste(prefix, parameter_names, sep = '')))
   parameter_vals <- unlist(values)
   out_model <- data.table(variable = parameter_names, value = parameter_vals)
@@ -92,28 +131,58 @@ fit_model <- function(data, opt, x0) {
   return(output)
 }
 
-get_regression_model <- function(parameters, data, model) {
+get_regression_model <- function(parameters, data, opt) {
   # inputs:
   # parameters: list of parameters. the minimization function adjusts x to get lowest negative log likelihood
   # data: behavioral data used for model
   # model: specified model. different models required different list entries in x (e.g., for additional parameters)
+  parameters <- check_parameters(parameters = parameters, model = opt$model)
   alpha <- parameters[[1]]
-  gamma <- alpha <- parameters[[2]]
+  gamma <- parameters[[2]]
+  # get shannon surprise based on successor representation:
   data_res <- get_dt_surprise(data, alpha, gamma)
+  # reduce data to main task condition only:
   data_res_main <- get_dt_main(dt_input = data_res)
-  stat_model <- get_stat_model(data = data_res_main)
-  output <- list(parameters = parameters, data = data, stat_model = stat_model)
+  # run statistical model:
+  stat_model <- get_stat_model(data = data_res_main, formula = opt$formula)
+  # add predicted response times based on the stat model:
+  data_res_main[, response_time_simulated := fitted(stat_model)]
+  # return parameters, data and results of statistical model:
+  output <- list(parameters = parameters, data = data_res_main, stat_model = stat_model)
   return(output)
 }
 
-get_stat_model <- function(data) {
-  formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+get_stat_model <- function(data, formula) {
   stat_model <- glm(formula = as.formula(formula), family = Gamma(link = 'inverse'), data = data)
   return(stat_model)
 }
 
-get_negative_log_likelihood <- function(parameters, data, model) {
-  results <- get_regression_model(parameters, data, model)
+get_negative_log_likelihood <- function(parameters, data, opt) {
+  results <- get_regression_model(parameters, data, opt)
   negative_log_likelihood <- -logLik(results$stat_model)
   return(negative_log_likelihood)
+}
+
+check_parameters <- function(parameters, model) {
+  if(model == 'sr'){
+    # Check if parameters fit specified model
+    if(length(parameters) != 2){
+      stop(paste('Number of parameters does not match specified model "',
+                 model,
+                 '"',
+                 sep = ''))
+    } else{
+      # Translate parameters for easier coding
+      parameters <- list(
+        "alpha" = parameters[[1]],
+        "gamma" = parameters[[2]]
+      )
+    }
+  } else if (model == 'sr_base') {
+    parameters <- list(
+      "alpha" = parameters[[1]],
+      "gamma" = 0
+    )
+  }
+  return(parameters)
 }

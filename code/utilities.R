@@ -62,17 +62,24 @@ get_opt_parser <- function() {
     "--participant_id", "sub-01",
     "--model", "sr",
     "--algorithm", "NLOPT_GN_DIRECT_L",
-    "--xtol_rel", "1.0e-5",
-    "--maxeval", "10",
+    "--xtol_rel", "0.00001",
+    "--maxeval", "10000",
     "--random_starting_values", "TRUE",
-    "--x0", "0.1,0.3",
+    "--x0", "0.5,0.5",
     "--lb", "0.01,0.01",
     "--ub", "1,1",
     "--n_iterations", "3"
   ) 
   # provide options in list to be callable by script:
   parser <- optparse::OptionParser(option_list = option_list)
-  opt <- optparse::parse_args(parser, args = args_example)
+  # check if there are any command line arguments:
+  if (length(commandArgs(trailingOnly = TRUE)) > 0) {
+    # parse the CLI arguments
+    opt <- optparse::parse_args(parser)
+  } else {
+    # use the example arguments for testing
+    opt <- optparse::parse_args(parser, args = args_example)
+  }
   return(opt)
 }
 
@@ -95,6 +102,15 @@ check_opt <- function(opt) {
   } else {
     message("all required inputs are present.\n")
   }
+  
+  # modify input values depending on the model:
+  if(opt$model == 'sr'){
+  } else if(opt$model == 'sr_base'){
+    opt$x0 <- opt$x0[[1]]
+    opt$lb <- opt$lb[[1]]
+    opt$ub <- opt$ub[[1]]
+  }
+  
   # basic checks: check if x0, lb, and ub have the same number of parameters
   x0 <- as.numeric(opt$x0)
   lb <- as.numeric(opt$lb)
@@ -105,25 +121,24 @@ check_opt <- function(opt) {
         length(lb) == length(ub))) {
     stop("number of parameters differs between x0, lb, or ub")
   }
+  return(opt)
 }
 
 create_random_starting_values <- function(opt) {
   # check if random_starting_values is TRUE
   if (opt$random_starting_values) {
     # initialize an empty vector for x0
-    x0 <- c()
+    opt$x0 <- c()
     # for each parameter, create a random value between the respective bounds
     for (count in seq_along(opt$lb)) {
       rand_val <- round(runif(1, opt$lb[count], opt$ub[count]), 2)  # random value rounded to 2 decimal places
-      x0 <- c(x0, rand_val)  # append the random value to x0
+      opt$x0 <- c(opt$x0, rand_val)  # append the random value to x0
     }
-    return(x0)  # return the generated random starting values
-  } else {
-    return(NULL)  # return NULL if random_starting_values is FALSE
   }
+  return(opt)
 }
 
-print_model_summary <- function(opt, x0) {
+print_model_summary <- function(opt) {
   message('#####')
   message(sprintf('Starting model fitting for %s ...', opt$participant_id))
   message('#####')
@@ -134,7 +149,7 @@ print_model_summary <- function(opt, x0) {
   message(sprintf('   algorithm: %s', opt$algorithm))
   message(sprintf('   xtol_rel: %.2e', opt$xtol_rel))
   message(sprintf('   maxeval: %d', opt$maxeval))
-  message(sprintf('   x0: %s', paste(round(x0, 2), collapse = '\t')))
+  message(sprintf('   x0: %s', paste(round(opt$x0, 2), collapse = '\t')))
   message(sprintf('   lb: %s', paste(round(opt$lb, 2), collapse = '\t')))
   message(sprintf('   ub: %s', paste(round(opt$ub, 2), collapse = '\t')))
   message('- - - - - - - - - - - - -')
