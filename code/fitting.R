@@ -10,13 +10,21 @@ fit_model_wrapper <- function(opt) {
   for (iter in seq(opt$n_iterations)) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
-    opt$formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+    if (opt$model == "sr_onestep") {
+      opt$formula <- "response_time ~ shannon_surprise + prob_current + trial_ses + block + hand_finger_pressed"
+    } else {
+      opt$formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+    } 
     temp <- fit_model(data = dt_sub, opt = opt)
     temp$fit[, process := "model_fitting"]
     # create new random starting values for the parameter recovery:
     # opt <- create_random_starting_values(opt)
     # run parameter recovery:
-    opt$formula <- "response_time ~ shannon_surprise"
+    if (opt$model == "sr_onestep") {
+      opt$formula <- "response_time ~ shannon_surprise + prob_current"
+    } else {
+      opt$formula <- "response_time ~ shannon_surprise"
+    }
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
     recov$fit[, process := "parameter_recovery"]
     # append results across iterations and add iteration identifier to model fit and data:

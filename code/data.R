@@ -7,6 +7,12 @@ get_dt_sub <- function(participant_id) {
     .[, trial_ses := seq(.N), by = .(id, session)] %>%
     # skip first trial of each run (because there is no transition happening):
     .[trial_run > 1, ] %>%
+    # add probability of current trial depending on graph structure:
+    .[, prob_current := dplyr::case_when(
+      graph == "flat" ~ prob_flat,
+      graph == "uni" ~ prob_uni,
+      graph == "bi" ~ prob_bi
+    )] %>%
     # add node transition as column:
     .[, transition := paste(node_previous, node, sep = "-")]
  return(dt_sub) 
