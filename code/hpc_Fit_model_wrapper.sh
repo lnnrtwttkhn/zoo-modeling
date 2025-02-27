@@ -50,7 +50,7 @@ N_ITERATIONS=3
 # ==============================================================================
 # Set modelling parameters
 # ==============================================================================
-declare -a MODELS=("sr" "sr_base", "sr_onestep")
+declare -a MODELS=("sr" "sr_base" "sr_onestep")
 RANDOM_STARTING_VALUES="TRUE"
 X0="0.5,0.5"
 LB="0.01,0.01"
