@@ -71,9 +71,14 @@ parameter_recovery <- function(fit, data, opt) {
   # get shannon surprise based on fitted parameters:
   data_res <- get_dt_surprise(data = data, alpha = alpha, gamma = gamma)
   # simulate response times based on beta coefficients and shannon surprise:
-  data_sub_reconv <- data_res %>%
-    .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
-  recov <- fit_model(data = data_sub_reconv, opt = opt)
+  if (opt$model == "sr_onestep") {
+    data_sub_recov <- data_res %>%
+      .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise + coeffs["prob_current"] * prob_current)]
+  } else {
+    data_sub_recov <- data_res %>%
+      .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
+  }
+  recov <- fit_model(data = data_sub_recov, opt = opt)
   return(recov)
 }
 
