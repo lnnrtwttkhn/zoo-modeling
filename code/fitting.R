@@ -154,7 +154,7 @@ get_regression_model <- function(parameters, data, opt) {
   # run statistical model:
   stat_model <- get_stat_model(data = data_res_main, formula = opt$formula)
   # add predicted response times based on the stat model:
-  data_res_main[, response_time_simulated := fitted(stat_model)]
+  # data_res_main[, response_time_simulated := fitted(stat_model)]
   # return parameters, data and results of statistical model:
   output <- list(parameters = parameters, data = data_res_main, stat_model = stat_model)
   return(output)
