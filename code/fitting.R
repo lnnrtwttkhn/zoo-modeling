@@ -17,6 +17,7 @@ fit_model_wrapper <- function(opt) {
     } 
     temp <- fit_model(data = dt_sub, opt = opt)
     temp$fit[, process := "model_fitting"]
+    temp$data[, process := "model_fitting"]
     # create new random starting values for the parameter recovery:
     # opt <- create_random_starting_values(opt)
     # run parameter recovery:
@@ -27,9 +28,10 @@ fit_model_wrapper <- function(opt) {
     }
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
     recov$fit[, process := "parameter_recovery"]
+    recov$data[, process := "parameter_recovery"]
     # append results across iterations and add iteration identifier to model fit and data:
-    fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>% .[, iter := iter]
-    fit_data[[iter]] <- rbindlist(list(temp$data, recov$fit_data)) %>% .[, iter := iter]
+    fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>%.[, iter := iter] 
+    fit_data[[iter]] <- rbindlist(list(temp$data, recov$data)) %>% .[, iter := iter]
   }
   fit <- rbindlist(fit) %>%
     # add model name:
