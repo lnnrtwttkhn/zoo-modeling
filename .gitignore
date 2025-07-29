@@ -1,10 +1,26 @@
+# Ignore R files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+
+# Ignore macOS junk
 .DS_Store
-outputs
-Rplots.pdf
+
+# Ignore hpc specific outputs
+logs/
+job.slurm
+
+# Ignore certain datatypes
+*.sif
+*.html
+*.pdf
+
+# Exclude output directory
+#outputs/
 
 # Exclude temporary hidden files
 ._*
+
+# Exclude .Rmd/.qmd files on case of render failure
+*_files

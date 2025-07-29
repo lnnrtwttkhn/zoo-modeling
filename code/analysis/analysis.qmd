@@ -1,0 +1,497 @@
+---
+title: "Modeling Analysis"
+format: html
+editor: visual
+---
+
+# Setup
+
+```{r}
+#| message: false
+library(magrittr)
+library(data.table)
+library(assertr)
+library(ggplot2)
+library(here)
+
+# Get repo root as base path component
+base_path = here::here()
+
+# Source own functions
+source_dir = file.path(base_path, 'code',
+                       fsep = .Platform$file.sep)
+source(file.path(source_dir, 'Exclude_participants.R', fsep = .Platform$file.sep))
+```
+
+Load modeling data
+
+```{r}
+data_dir = file.path(base_path, 'outputs', 'modeling', 'sub-*sr.csv',
+                     fsep = .Platform$file.sep)
+data_files = Sys.glob(data_dir)
+data = data.table::data.table()
+for(file in data_files){
+  data = rbind(data,
+               data.table::fread(file))
+}
+
+# Exclude participants
+data = data %>%
+  Exclude_participants(.)
+```
+
+Load behavioral data
+
+```{r}
+data_files = file.path(base_path, 'inputs', 'zoo_sourcedata_behavioral_data.csv',
+                     fsep = .Platform$file.sep)
+data_behav = data.table::fread(data_files) %>%
+  # Exclude participants
+  Exclude_participants(.)
+```
+
+------------------------------------------------------------------------
+
+# Sanity Checks
+
+## Number of participants in groups (bi-uni and uni-bi)
+
+```{r}
+data_n_check = data %>%
+  .[, .(order = unique(order)),
+    by = c('id')] %>%
+  .[, count := seq(.N),
+    by = c('order')]
+```
+
+## Are starting values of minimization random?
+
+```{r}
+check_sv = data %>%
+  # Cut data to relevant variables
+  .[mod== 'model'] %>%
+  .[variable %in% c('x0_alpha', 'x0_gamma')] %>%
+  # Count number of different starting values within each participant and parameter
+  .[, .(n_diff_sv = length(unique(value)),
+        n_sv = length(value)),
+    by = .(id, variable)] %>%
+  # Test if same starting values were used for all iterations
+  assertr::verify(., n_diff_sv == 1)
+```
+
+As intended: The starting values are random, but for every iteration we used the same set of starting values.
+
+## Consistent estimation across iterations? (using same starting values)
+
+```{r}
+check_cons = data %>%
+  # Cut data to relevant variables
+  .[mod== 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Get dispersion of parameter estimates
+  .[, .(sd_estimate = sd(value)),
+    by = .(id, variable)]
+
+p = ggplot2::ggplot(data = check_cons,
+                    aes(x = sd_estimate)) +
+  geom_freqpoly(bins = 30) +
+  facet_wrap(~variable)
+p
+```
+
+As to be expected there is no variation in parameter estimates across iterations (sd = 0). This is because the algorithm used (DIRECT_L) is independent of starting values and deterministic in its search.
+
+## Distribution of parameters
+
+```{r}
+check_dist = data %>%
+  # Cut data to relevant variables
+  .[mod== 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Only use first iteration (since no dispersion between iterations)
+  .[iter == 1]
+
+# Plot dispersion of parameter values across different iterations
+p = ggplot2::ggplot(data = check_dist,
+                    aes(x = value)) +
+  geom_histogram(binwidth = 0.05,
+                 linewidth = 0.5,
+                 color = 'grey',
+                 fill = 'black') +
+  # scale_x_continuous(n.breaks = n_bins/2,
+  #                    expand = c(0,0)) +
+  facet_wrap(~variable) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1))
+p
+```
+
+------------------------------------------------------------------------
+
+# Average of parameters (of first iteration)
+
+## Across graph-orders
+
+```{r}
+table_params_all = data %>%
+  # Cut data to relevant variables
+  .[mod == 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Get dispersion of parameter estimates
+  .[, .(mean_estimate = mean(value),
+        sd_estimate = sd(value)),
+    by = .(variable)]
+table_params_all
+```
+
+```{r}
+# Plot dispersion of parameter values for first iteration
+p = ggplot2::ggplot(data = check_dist,
+                    aes(x = variable,
+                        y = value,
+                        fill = variable)) +
+  geom_boxplot(outlier.shape = NA) +
+    geom_point(position = position_jitter(width = 0.2,
+                                        height = 0,
+                                        seed = 666)) +
+  stat_summary(fun = 'mean',
+               geom = 'point',
+               shape = 23,
+               size = 4,
+               fill = 'white',
+               color = 'black') +
+  labs(x = 'Parameter',
+       y = 'Estimate') +
+  theme(legend.position = 'none')
+p
+```
+
+## Within graph-orders
+
+```{r}
+table_params_group = data %>%
+  # Cut data to relevant variables
+  .[iter == 1,] %>%
+  .[mod == 'model'] %>%
+  .[variable %in% c('alpha', 'gamma')] %>%
+  # Get dispersion of parameter estimates
+  .[, .(mean_estimate = mean(value),
+        sd_estimate = sd(value)),
+    by = .(order, variable)]
+table_params_group
+```
+
+```{r}
+p = ggplot2::ggplot(data = check_dist,
+                    aes(x = variable,
+                        y = value,
+                        fill = variable)) +
+  geom_boxplot(outlier.shape = NA) +
+    geom_point(position = position_jitter(width = 0.2,
+                                        height = 0,
+                                        seed = 666)) +
+  stat_summary(fun = 'mean',
+               geom = 'point',
+               shape = 23,
+               size = 4,
+               fill = 'white',
+               color = 'black') +
+  facet_wrap(~order) +
+  labs(x = 'Parameter',
+       y = 'Estimate') +
+  theme(legend.position = 'none')
+p
+```
+
+------------------------------------------------------------------------
+
+# Non-zero $\gamma$ parameters
+
+```{r}
+# Set threshold for what is considered non-zero gamma estimate
+non_zero_threshold = 0.1
+
+# Get non-zero gamma variable and use it to sort
+data_nonzero_gamma = check_dist %>%
+  .[variable == 'gamma',] %>%
+  .[, non_zero_gamma := value > non_zero_threshold] %>%
+  .[order(non_zero_gamma)]
+
+# Get table of non_zero_gamma counts (across and within group)
+table_nonzero_gamma_all = data_nonzero_gamma %>%
+  .[, .(min_gamma = min(value),
+        max_gamma = max(value),
+        n = .N),
+    by = c('non_zero_gamma')] %>%
+  .[, ':='(non_zero_threshold = non_zero_threshold,
+           order = 'across')]
+table_nonzero_gamma_groups = data_nonzero_gamma %>%
+  .[, .(min_gamma = min(value),
+        max_gamma = max(value),
+        n = .N),
+    by = c('order', 'non_zero_gamma')] %>%
+  .[, ':='(non_zero_threshold = non_zero_threshold)]
+
+# Combine tables
+table_nonzero_gamma = rbind(table_nonzero_gamma_all,
+                            table_nonzero_gamma_groups) %>%
+  data.table::setcolorder(c('order', 'non_zero_gamma', 'non_zero_threshold'))
+table_nonzero_gamma
+```
+
+
+------------------------------------------------------------------------
+
+# Did shannon surprise (influenced by `alpha` and `gamma`) influence choices?
+
+```{r}
+data_p_ss = data %>%
+  # Restrict to first iteration
+  .[iter == 1, ] %>%
+  # Look at p-values of regressors used in regression model
+  .[mod == 'reg_model',] %>%
+  .[substr(variable, start = 0, stop = 2) == 'p_',] %>%
+  # convert id variable to factor
+  .[, variable := factor(variable,
+                         levels = c('p_Intercept',
+                                    'p_shannon_surprise',
+                                    'p_trial_ses',
+                                    'p_block',
+                                    'p_hand_finger_pressedleft_middle',
+                                    'p_hand_finger_pressedleft_ring',
+                                    'p_hand_finger_pressedright_index',
+                                    'p_hand_finger_pressedright_middle',
+                                    'p_hand_finger_pressedright_ring'))]
+
+# Plot distribution of p-values for each regressor
+p = ggplot(data = data_p_ss,
+           aes(x = variable,
+               y = value)) +
+  geom_hline(yintercept = 0.05,
+             linetype = 'dashed',
+             linewidth = 0.3) +
+  geom_boxplot(width = 0.2,
+               outlier.shape = NA) +
+  geom_point(size = 0.3,
+             position = position_jitter(width = 0.1,
+                                        height = 0)) +
+  facet_wrap(~variable, scales = 'free') +
+  theme(axis.text.x = element_blank())
+p
+```
+
+------------------------------------------------------------------------
+
+# Which trials are we including?
+
+```{r}
+# Load model-data of participant
+data_trials = data.table::fread(file.path(base_path,
+                                          'outputs',
+                                          'modeling',
+                                          'sub-01_model-sr_fit-data.csv',
+                                          fsep = .Platform$file.sep),
+                                sep = ',') %>%
+  # Restrict to first iteration (only to check which trials are modeled)
+  .[iter == 1,]
+data_trials
+```
+
+------------------------------------------------------------------------
+
+# Distribution of betas (shannon_surprise)
+
+What is the relationship between shannon surprise (influenced by gamma and alpha) and RT?
+
+Betas are of the opposite sign because of the inverse link. You can imagine it as a flipping of the x-axis (inverse link = large numbers get small, small numbers get large). That's why the direction of the relationship changes: low surprise values are now on the far end of the x-axis, and if low surprise means fast reaction, the relationship is not negative (negative beta).
+
+See [here](https://www.causact.com/linear-predictors-and-inverse-link-functions.html) under 22.2, point 2 "Inverse Logit".
+
+```{r}
+data_beta = data %>%
+  .[mod == 'reg_model' & variable == 'beta_shannon_surprise'] %>%
+  # Only take first iteration (fitting is consistent)
+  .[iter == 1]
+
+p = ggplot2::ggplot(data = data_beta,
+                    aes(x = variable,
+                        y = value)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(position = position_jitter(width = 0.1,
+                                        height = 0,
+                                        seed = 666)) +
+  geom_hline(yintercept = 0)
+p
+```
+
+To illustrate the inversion of the betas/relationship with RT:
+
+```{r}
+# Load data of regression process
+data_dir = file.path(base_path, 'outputs', 'modeling', 'sub-*fit-data.csv',
+                     fsep = .Platform$file.sep)
+data_files = Sys.glob(data_dir)
+data_reg = data.table::data.table()
+for(file in data_files){
+  data_reg = rbind(data_reg,
+                   data.table::fread(file))
+}
+
+# Restrict to first iteration
+data_reg = data_reg %>%
+  .[iter == 1]
+
+# Apply inverse link
+stat_model_1 = glm(formula = response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed,
+                   family = Gamma(link = 'inverse'),
+                   data = data_reg[id == 'sub-03'])
+
+# No inverse link
+stat_model_2 = glm(formula = response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed,
+                   data = data_reg[id == 'sub-03'])
+
+out = data.table::as.data.table(
+  cbind(names(stat_model_1$coefficients),
+        stat_model_1$coefficients,
+        stat_model_2$coefficients)
+  )
+colnames(out) = c('Coef', 'Beta_inverse_link', 'Beta_no_link')
+out
+
+# Plot relationship between surprise and RT for each participant (no link)
+p = ggplot2::ggplot(data = data_reg,
+                aes(x = shannon_surprise,
+                    y = response_time)) +
+  geom_point(size = 0.2) +
+  geom_smooth(method='lm',
+              formula = y~x) +
+  coord_fixed(ratio = 70) +
+  facet_wrap(~id)
+p
+```
+
+## Relationship between surprise beta and gamma
+
+```{r}
+data_surprise_gamma = data %>%
+  # Isolate gamma and beta of shannon surprise
+  .[variable %in% c('gamma', 'beta_shannon_surprise')] %>%
+  # Only take first iteration (see above)
+  .[iter == 1] %>%
+  data.table::dcast(id + order + neg_ll ~ variable,
+                    value.var = 'value')
+
+p = ggplot2::ggplot(data = data_surprise_gamma,
+                aes(x = gamma,
+                    y = beta_shannon_surprise)) +
+  geom_point()
+p
+```
+
+## Relationship between LR and gamma
+
+```{r}
+data_lr_gamma = data %>%
+  # Isolate gamma and beta of shannon surprise
+  .[variable %in% c('gamma', 'alpha')] %>%
+  # Only take first iteration (see above)
+  .[iter == 1] %>%
+  data.table::dcast(id + order + neg_ll ~ variable,
+                    value.var = 'value')
+
+p = ggplot2::ggplot(data = data_lr_gamma,
+                aes(x = gamma,
+                    y = alpha)) +
+  geom_point()
+p
+```
+
+------------------------------------------------------------------------
+
+# Analysis
+
+Fuse behavioral data with modeling data
+
+```{r}
+# Get accuracy and RT of main task together with parameter values
+data_fuse = data_behav %>%
+  # Restrict data to main task
+  .[condition == 'main'] %>%
+  # Get percentage correct and avg RT
+  .[, .(avg_acc = sum(accuracy)/.N,
+        avg_logrt_correct = mean(log(response_time[accuracy == 1])),
+        median_logrt_correct = median(log(response_time[accuracy == 1])),
+        sd_logrt_correct = sd(log(response_time[accuracy == 1]))),
+    by = .(id)] %>%
+  # merge with modeling data
+  data.table::merge.data.table(., data,
+                               by = 'id') %>%
+  # restrict to best fitting parameters
+  .[mod == 'model' & variable %in% c('alpha', 'gamma')] %>%
+  # Only take first iteration (no difference between iterations, see above)
+  .[iter == 1]
+```
+
+## Parameters vs. accuracy
+
+```{r}
+# plot accuracy vs. parameter fits
+p = ggplot2::ggplot(data = data_fuse,
+                aes(x = avg_acc,
+                    y = value)) +
+  geom_point() +
+  facet_wrap(~variable)
+p
+```
+
+## Parameters vs. mean RT
+
+```{r}
+p = ggplot2::ggplot(data = data_fuse,
+                aes(x = avg_logrt_correct,
+                    y = value)) +
+  geom_point() +
+  facet_wrap(~variable)
+p
+```
+
+## RT penalty for violated structure vs. parameter
+
+```{r}
+# Get penalty for violated structure
+data_violated = data_behav %>%
+  # Restrict data to main task
+  .[condition == 'main'] %>%
+  # Exclude first trial, since no transition
+  .[trial_run != 1] %>%
+  # Get percentage correct and avg RT
+  .[, ':='(violated_uni = prob_uni != 0.7,
+           violated_bi = prob_bi != 0.35)] %>%
+  .[, violated := NA] %>%
+  .[graph == 'uni', violated := violated_uni] %>%
+  .[graph == 'bi', violated := violated_bi] %>%
+  # Exclude first trial of switched graph
+  .[!(trial_run == 121 & run == 'run-03')] %>%
+  # Get avg RT for correct trials, given structure was violated or not
+  .[, .(avg_logrt = mean(log(response_time[accuracy == 1]))),
+    by = .(id, graph, violated)] %>%
+  # Wide format
+  data.table::dcast(id + graph ~ paste0('avg_logrt_violated_', violated), value.var = 'avg_logrt') %>%
+  # Get difference in avg RT between violated and not-violated structure
+  .[, avg_logrt_violated_m_not := avg_logrt_violated_TRUE - avg_logrt_violated_FALSE] %>%
+  # merge with modeling data
+  data.table::merge.data.table(data_fuse, .,
+                               by = 'id') %>%
+  # restrict to best fitting parameters
+  .[mod == 'model' & variable %in% c('alpha', 'gamma')] %>%
+  # Only take first iteration (no difference between iterations, see above)
+  .[iter == 1]
+
+p = ggplot2::ggplot(data = data_violated,
+                    aes(x = avg_logrt_violated_m_not,
+                        y = value)) +
+  geom_point() +
+  facet_grid(graph~variable)
+p
+```

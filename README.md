@@ -14,7 +14,7 @@ Done! 🎉
 
 ## Add GIN remote
 
-Following a `datalad clone` from GitLab, you need to configure the GIN remote in two steps:
+Following a `datalad clone` from GitHub, you need to configure the GIN remote in two steps:
 
 First, add the GIN remote as an additional second "sibling":
 
@@ -36,7 +36,6 @@ datalad push --to origin
 
 Due to the `-publish-depends gin` configuration, DataLad will push to both remote repositories simultaneously.
 
-
 ## Run
 
 Inside the project directory (you might need to `cd zoo-modeling`), run `make all` to run `sr-modeling.R` which recreates [Figure 3d of the preprint](https://www.biorxiv.org/content/biorxiv/early/2022/02/02/2022.02.02.478787/F3.large.jpg?width=800&height=600&carousel=1).
@@ -44,6 +43,30 @@ Inside the project directory (you might need to `cd zoo-modeling`), run `make al
 ## Requirements
 
 All R requirements listed in [renv.lock](renv.lock).
+
+## Docker
+
+The following instructions are only needed for building the **Docker** container.
+
+- The recipe for the Docker container is specified in [this Dockerfile](.docker/modeling/Dockerfile)
+- To get the required R packages out of the `renv` environment, the following command is helpful:
+
+```R
+unique(renv::dependencies()$Package)
+```
+
+- The container can be build by running `make docker-build` (see [Makefile](Makefile))
+- The container can be pushed to the [container registry](https://git.mpib-berlin.mpg.de/wittkuhn/zoo-modeling/container_registry) by running `make docker-push` (see [Makefile](Makefile))
+
+## Tardis
+
+On Tardis, we can't use docker, so we need to create an [Apptainer](https://apptainer.org/) (formely known as "Singularity").
+
+- On Tardis, an apptainer (aka. singularity) container can be build from the Docker file by running `make apptainer-pull` (see [Makefile](Makefile)).
+This will generate an apptainer called `modeling.sif` that is used on the cluster.
+The command basically pulls the Docker container from the container registry and turns it into an Apptainer called `modeling.sif`.
+- The command will ask you for login details for the container resgitry.
+If you are a repository maintainer, your MPIB credentials should work!
 
 ## Dataset structure
 

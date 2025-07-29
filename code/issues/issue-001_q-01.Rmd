@@ -1,0 +1,177 @@
+
+# Setup
+
+```{r}
+library(here)
+library(data.table)
+library(lme4)
+library(magrittr)
+library(car)
+library(ggplot2)
+
+base_path = here::here()
+code_path = file.path(base_path, 'code')
+source(file.path(code_path, 'Sr_fun.R'))
+```
+
+
+# Load data
+
+```{r}
+data_path = file.path(base_path, 'inputs', 'zoo_sourcedata_behavioral_data.csv')
+data = data.table::fread(data_path)
+```
+
+# Data pre-processing (identical to model fitting)
+
+```{r}
+# Specify targeted number of runs and trials after data transformation
+num_runs = 5
+num_trials_run = 240
+
+data_model = data %>%
+  data.table::setDT(.) %>%
+  # Get trial within session
+  .[, trial_ses := seq(.N),
+    by = .(id, session)] %>%
+  # Skip first trial of each run (because there is no transition happening)
+  .[trial_run > 1, ] %>%
+  # Add node transition as column
+  .[, transition := paste(node_previous, node, sep = "-")] %>%
+  # Apply dummy SR model (SR will not be used, but some columns are created in 
+  # the process)
+  .[, by = .(id), shannon_surprise := Sr_fun(node_previous = node_previous,
+                                             node = node,
+                                             alpha = 0,
+                                             gamma = 0)] %>%
+  .[condition == "main",] %>%
+  # Add log-transformed RT
+  .[, log_response_time := log(response_time)] %>%
+  # Add column for first and second half of run
+  .[, halfrun := ifelse(trial_run <= num_trials_run / 2, "first", "second")] %>%
+  # Specify block (combination of run and halfrun)
+  .[, block := as.numeric(factor(paste(run, halfrun, sep = '_')))] %>%
+  # Get trial within block
+  .[, trial_block := seq(.N),
+    by = .(id, block)] %>%
+  # Column for graph used
+  .[, graphblock := ifelse(block %in% seq(1, 5), "first graph", "second graph")] %>%
+  # Check if any data is missing
+  assertr::verify(block %in% seq(1, num_runs * 2)) %>%
+  # Exclude error trials
+  .[accuracy == 1,]
+
+```
+
+
+# Models without shannon surprise
+
+## Trial (session) and finger
+
+```{r}
+model_1 = lme4::lmer(formula = log_response_time ~ trial_ses + finger_pressed + (1 | id),
+                     data = data_model)
+summary(model_1)
+car::Anova(model_1)
+```
+
+## Trial (block), block, and finger
+
+```{r}
+model_2 = lme4::lmer(formula = log_response_time ~ trial_block + block + finger_pressed + (1 | id),
+                     data = data_model)
+summary(model_2)
+car::Anova(model_2)
+```
+
+---
+
+# Plot
+
+## Trial session
+
+```{r}
+p = ggplot2::ggplot(data = data_model,
+                    aes(x = trial_ses,
+                        y = log_response_time,
+                        color = id)) +
+  #geom_point(size = 0.1, alpha = 0.1) +
+  geom_smooth(method = 'lm',
+              formula = y ~ x,
+              alpha = 0.1) +
+  theme(legend.position = 'none')
+p
+```
+
+## Trial block
+
+```{r}
+p = ggplot2::ggplot(data = data_model,
+                    aes(x = trial_block,
+                        y = log_response_time,
+                        color = id)) +
+  #geom_point(size = 0.1, alpha = 0.1) +
+  geom_smooth(method = 'lm',
+              formula = y ~ x,
+              alpha = 0.1) +
+  theme(legend.position = 'none')
+p
+```
+
+## Block
+
+```{r}
+p = ggplot2::ggplot(data = data_model,
+                    aes(x = as.factor(block),
+                        y = log_response_time,
+                        fill = block)) +
+  geom_boxplot(outlier.shape = NA,
+               color = 'black') +
+  stat_summary(fun = 'mean', geom = 'point', shape = 23, color = 'black', fill = 'white', size = 4)
+  #facet_wrap(~block)
+p
+```
+
+
+## Finger/hand pressed
+
+```{r}
+p = ggplot2::ggplot(data = data_model,
+                    aes(x = finger_pressed,
+                        y = log_response_time,
+                        fill = finger_pressed)) +
+  geom_boxplot(outlier.shape = NA,
+               color = 'black') +
+  stat_summary(fun = 'mean', geom = 'point', shape = 23, color = 'black', fill = 'white', size = 4) +
+  facet_wrap(~hand_pressed)
+p
+```
+
+---
+
+# Code hand-specific finger
+
+```{r}
+data_model = data_model %>%
+  .[, hand_finger_pressed := paste(hand_pressed, finger_pressed, sep = '_')]
+```
+
+## Model 1
+
+```{r}
+model_1 = lme4::lmer(formula = log_response_time ~ trial_ses + hand_finger_pressed + (1 | id),
+                     data = data_model)
+summary(model_1)
+car::Anova(model_1)
+```
+
+
+## Model 2
+
+```{r}
+model_2 = lme4::lmer(formula = log_response_time ~ trial_block + block + hand_finger_pressed + (1 | id),
+                     data = data_model)
+summary(model_2)
+car::Anova(model_2)
+```
+

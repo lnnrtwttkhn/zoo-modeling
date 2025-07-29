@@ -1,0 +1,10 @@
+if (!requireNamespace("pacman")) install.packages("pacman")
+packages_cran <- c("here", "data.table", "magrittr", "assertr",
+                  "dplyr", "tidyr", "gtools", "lme4", "ggplot2")
+pacman::p_load(char = packages_cran)
+source(here::here("code", "utilities.R"))
+source(here::here("code", "fitting.R"))
+source(here::here("code", "data.R"))
+opt <- get_opt_parser()
+opt <- check_opt(opt)
+fit_model_wrapper(opt)
