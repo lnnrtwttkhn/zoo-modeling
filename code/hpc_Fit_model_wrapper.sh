@@ -46,11 +46,11 @@ MEM_MB=500
 ALGORITHM="NLOPT_GN_DIRECT_L"
 XTOL_REL=0.00001
 MAXEVAL=10000
-N_ITERATIONS=3
+N_ITERATIONS=1
 # ==============================================================================
 # Set modelling parameters
 # ==============================================================================
-declare -a MODELS=("sr" "sr_base")
+declare -a MODELS=("sr" "sr_base" "sr_onestep")
 RANDOM_STARTING_VALUES="TRUE"
 X0="0.5,0.5"
 LB="0.01,0.01"

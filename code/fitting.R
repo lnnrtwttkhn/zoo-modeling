@@ -10,18 +10,28 @@ fit_model_wrapper <- function(opt) {
   for (iter in seq(opt$n_iterations)) {
     message(paste("iter:\t", iter, "...", sep = ''))
     # fit model (returns fit and data the fit is based on)
-    opt$formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+    if (opt$model == "sr_onestep") {
+      opt$formula <- "response_time ~ shannon_surprise + prob_current + trial_ses + block + hand_finger_pressed"
+    } else {
+      opt$formula <- "response_time ~ shannon_surprise + trial_ses + block + hand_finger_pressed"
+    } 
     temp <- fit_model(data = dt_sub, opt = opt)
     temp$fit[, process := "model_fitting"]
+    temp$data[, process := "model_fitting"]
     # create new random starting values for the parameter recovery:
     # opt <- create_random_starting_values(opt)
     # run parameter recovery:
-    opt$formula <- "response_time ~ shannon_surprise"
+    if (opt$model == "sr_onestep") {
+      opt$formula <- "response_time ~ shannon_surprise + prob_current"
+    } else {
+      opt$formula <- "response_time ~ shannon_surprise"
+    }
     recov <- parameter_recovery(fit = temp$fit, data = dt_sub, opt = opt)
     recov$fit[, process := "parameter_recovery"]
+    recov$data[, process := "parameter_recovery"]
     # append results across iterations and add iteration identifier to model fit and data:
-    fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>% .[, iter := iter]
-    fit_data[[iter]] <- rbindlist(list(temp$data, recov$fit_data)) %>% .[, iter := iter]
+    fit[[iter]] <- rbindlist(list(temp$fit, recov$fit)) %>%.[, iter := iter] 
+    fit_data[[iter]] <- rbindlist(list(temp$data, recov$data)) %>% .[, iter := iter]
   }
   fit <- rbindlist(fit) %>%
     # add model name:
@@ -63,9 +73,14 @@ parameter_recovery <- function(fit, data, opt) {
   # get shannon surprise based on fitted parameters:
   data_res <- get_dt_surprise(data = data, alpha = alpha, gamma = gamma)
   # simulate response times based on beta coefficients and shannon surprise:
-  data_sub_reconv <- data_res %>%
-    .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
-  recov <- fit_model(data = data_sub_reconv, opt = opt)
+  if (opt$model == "sr_onestep") {
+    data_sub_recov <- data_res %>%
+      .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise + coeffs["prob_current"] * prob_current)]
+  } else {
+    data_sub_recov <- data_res %>%
+      .[, response_time := (coeffs["(Intercept)"] + coeffs["shannon_surprise"] * shannon_surprise)]
+  }
+  recov <- fit_model(data = data_sub_recov, opt = opt)
   return(recov)
 }
 
@@ -81,7 +96,7 @@ fit_model <- function(data, opt) {
   # run regression model with best fitting parameters:
   results <- get_regression_model(parameters = parameters, data = data, opt = opt)
   # Get parameter names for each model
-  if(opt$model == 'sr'){
+  if(opt$model == 'sr' || opt$model == 'sr_onestep'){
     parameter_names = c('alpha', 'gamma')
   } else if(opt$model == 'sr_base'){
     parameter_names = c('alpha')
@@ -146,7 +161,7 @@ get_regression_model <- function(parameters, data, opt) {
   # run statistical model:
   stat_model <- get_stat_model(data = data_res_main, formula = opt$formula)
   # add predicted response times based on the stat model:
-  data_res_main[, response_time_simulated := fitted(stat_model)]
+  # data_res_main[, response_time_simulated := fitted(stat_model)]
   # return parameters, data and results of statistical model:
   output <- list(parameters = parameters, data = data_res_main, stat_model = stat_model)
   return(output)
@@ -164,7 +179,7 @@ get_negative_log_likelihood <- function(parameters, data, opt) {
 }
 
 check_parameters <- function(parameters, model) {
-  if(model == 'sr'){
+  if(model == "sr" || model == "sr_onestep"){
     # Check if parameters fit specified model
     if(length(parameters) != 2){
       stop(paste('Number of parameters does not match specified model "',
@@ -178,7 +193,7 @@ check_parameters <- function(parameters, model) {
         "gamma" = parameters[[2]]
       )
     }
-  } else if (model == 'sr_base') {
+  } else if (model == "sr_base") {
     parameters <- list(
       "alpha" = parameters[[1]],
       "gamma" = 0
